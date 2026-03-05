@@ -48,17 +48,30 @@ void IsLinkingShaderProgramSuccessfully(unsigned int shaderProgram) {
 unsigned int WIDTH = 800;
 unsigned int HEIGHT = 600;
 unsigned int VBO;
+unsigned int EBO;
 unsigned int VAO;
 unsigned int vertexShader;
 unsigned int fragmentShader;
 unsigned int shaderProgram;
 
-float vertices[] = {
+float vertices_tr[] = {
   -0.5f, -0.5f, 0.0f,
   0.5f, -0.5f, 0.0f,
   0.0f,0.5f, 0.0f
-
 };
+
+float vertices[] = {
+  0.5f,  0.5f, 0.0f,
+  0.5f, -0.5f, 0.0f,
+ -0.5f, -0.5f, 0.0f,
+ -0.5f,  0.5f, 0.0f
+};
+
+unsigned int indices[] = {
+  0, 1, 3,
+  1, 2, 3
+};
+
 
 const char* vertexShaderSource = "#version 330 core\n"
 "layout (location = 0) in vec3 aPos;\n"
@@ -121,17 +134,22 @@ int main() {
 
 
 	
-	//Создание буфера данных VBO и буфера индексов VAO в видеопамяти
+	//Создание оббекта буфера данных VBO, обьекта буфера элементов EBO и обьекта массива вершин VAO в видеопамяти
 	glGenVertexArrays(1, &VAO);
-	glGenBuffers(1, &VBO); //генерируем уникальный идентификатор буфера-обьекта Опенгл и создаем этот обьект
+	glGenBuffers(1, &VBO); //генерируем уникальный идентификатор буфера-обьекта вершин Опенгл и создаем этот обьект
+	glGenBuffers(1, &EBO); // генерируем уникальный идентификатор буфера-обьекта индексов Опенгл и создаем этот обьект
 	glBindVertexArray(VAO);
 
 	glBindBuffer(GL_ARRAY_BUFFER, VBO); // связываем созданныё буфферный обьект с типом буфера вершин - GL_ARRAY_BUFFER
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO); // связываем созданныё буфферный обьект с типом буфера вершин - GL_ARRAY_BUFFER
+
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW); // копируем данные вершин из массива оперативной памяти в буфер видеопамяти видеокарты
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);// копируем данные индексов из массива оперативной памяти в буфер видеопамяти видеокарты
+
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);// устанавливаем указатели атрибутов вершин, чтобы сказать опенгл как он должен интерпритировать данные вершины
 	glEnableVertexAttribArray(0);// включаем атрибут вершины
 
-	//отвязываем буферы
+	//отвязываем буферы кроме EBO иначе VAO потеряет доступ к нему
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 
@@ -143,10 +161,11 @@ int main() {
 
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
-
+		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); //режим рисования каркаса если надо, а это чтобы вернуть в исходный режим рисования - glPolygonMode(GL_FRONT_AND_BACK, GL_FILL).
 		glUseProgram(shaderProgram);//активируем программу шейдеров
-		glBindVertexArray(VAO);
-		glDrawArrays(GL_TRIANGLES, 0, 3);
+		glBindVertexArray(VAO); // связывание с VAO автоматически связываает EBO, всегда отвязываем EBO  после отвязки VAO
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+	
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
