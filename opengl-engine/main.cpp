@@ -47,9 +47,21 @@ void IsLinkingShaderProgramSuccessfully(unsigned int shaderProgram) {
 
 unsigned int WIDTH = 800;
 unsigned int HEIGHT = 600;
-unsigned int VBO;
-unsigned int EBO;
-unsigned int VAO;
+
+/*
+VBO — VAO запоминает не сам VBO, а настройку glVertexAttribPointer.После того как настройка записана, VBO можно
+отвязать — VAO уже знает что нужно.
+
+EBO — VAO запоминает саму привязку GL_ELEMENT_ARRAY_BUFFER напрямую.Если отвязать EBO пока VAO активен — VAO потеряет
+ссылку на него и glDrawElements сломается.
+
+Кратко: VBO хранится через атрибут, EBO хранится напрямую в VAO.
+*/
+unsigned int VBO;	//храналище вершин
+unsigned int EBO;  //позволяет переиспользовать вершины из VBO, указывая на них по индексу.							
+unsigned int VAO; //контейнер/конфигурация, который запоминает: -какой VBO привязан
+															 // -какой EBO привязан
+															// - как интерпретировать данные(glVertexAttribPointer)
 unsigned int vertexShader;
 unsigned int fragmentShader;
 unsigned int shaderProgram;
