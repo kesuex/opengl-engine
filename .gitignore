@@ -1,0 +1,16 @@
+# Visual Studio
+.vs/
+*.slnx.user
+*.sln.user
+*.vcxproj.user
+
+# Build output
+x64/
+Debug/
+Release/
+
+# Compiled files
+*.obj
+*.pch
+*.ilk
+*.pdb
