@@ -45,7 +45,6 @@ void IsLinkingShaderProgramSuccessfully(unsigned int shaderProgram) {
 	}
 }
 
-
 unsigned int WIDTH = 800;
 unsigned int HEIGHT = 600;
 unsigned int VBO;
