@@ -1,3 +1,4 @@
+#include "Shader.h"
 #include <iostream>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -12,38 +13,6 @@ void processInput(GLFWwindow* window) {
 	}
 }
 
-void IsCompileVertexShaderSuccessfully(unsigned int vertexShader) {
-	int success;
-	char infolog[512];
-	glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-	if (!success) {
-		glGetShaderInfoLog(vertexShader, 512, NULL, infolog);
-		std::cout << "Error shader vertex compilation failed "; 
-		std::cout << infolog;
-	}
-}
-
-void IsCompileFragmentShaderSuccessfully(unsigned int fragmentShader) {
-	int success;
-	char infolog[512];
-	glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
-	if (!success) {
-		glGetShaderInfoLog(fragmentShader, 512, NULL, infolog);
-		std::cout << "Error shader fragment compilation failed ";
-		std::cout << infolog;
-	}
-}
-
-void IsLinkingShaderProgramSuccessfully(unsigned int shaderProgram) {
-	int success;
-	char infolog[512];
-	glGetProgramiv(shaderProgram, GL_COMPILE_STATUS, &success);
-	if (!success) {
-		glGetProgramInfoLog(shaderProgram, 512, NULL, infolog);
-		std::cout << "Error shader program compilation failed ";
-		std::cout << infolog;
-	}
-}
 
 unsigned int WIDTH = 800;
 unsigned int HEIGHT = 600;
@@ -61,13 +30,7 @@ unsigned int VBO;	//храналище вершин
 unsigned int EBO;  //позволяет переиспользовать вершины из VBO, указывая на них по индексу.							
 unsigned int VAO; //контейнер/конфигурация, который запоминает: -какой VBO привязан
 															 // -какой EBO привязан
-															// - как интерпретировать данные(glVertexAttribPointer)
-unsigned int vertexShader;
-unsigned int fragmentShader;
-unsigned int shaderProgram;
-
-
-
+															// - как интерпретировать данные(glVertexAttribPointer
 
 float vertices_tr[] = {
   -0.5f, -0.5f, 0.0f,
@@ -87,24 +50,6 @@ unsigned int indices[] = {
   0, 1, 3,
   1, 2, 3
 };
-
-
-const char* vertexShaderSource = "#version 330 core\n"
-"layout (location = 0) in vec3 aPos;\n" //указатель расположения атрибутов вершин
-"layout (location = 1) in vec3 aColor;\n"
-//"out vec4 vertexColor;\n" //обьефвляем переменную для цвета и последуюющей перадчи во фрагментный ешейдер
-"out vec3 ourColor;\n"
-"void main()\n"
-"{gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0); ourColor = aColor;}"; //vertexColor = vec4(0.5, 0.0, 0.0, 1.0); }"; - ранний пример передачи vertexColor в фрагментный шейдер
-
-const char* fragmentShaderSource = "#version 330 core\n"
-"out vec4 FragColor;\n"
-//"in vec4 vertexColor;\n" //принимаем переменную для цвета из вертексного шейдера
-"in vec3 ourColor;\n"
-//"uniform vec4 ourColor;\n" // юниформ переменная - является глобальной, позволяет задавать их значение на любом этапе шейдера, поэтому незачем определять их в вершинном шейдере//если обьявить униформ переменную и не использовать ее компилятор удалит ее без предупреждения из скомпилированной версии
-"void main()\n"
-"{FragColor = vec4(ourColor, 1.0);}";
-
 
 
 int main() {
@@ -130,32 +75,10 @@ int main() {
 		return -1;
 	}
 
-	
-	//Создание вершинного шейдера
-	vertexShader = glCreateShader(GL_VERTEX_SHADER);//создаем обьект шейдера вместе с айди
-	glShaderSource(vertexShader, 1, &vertexShaderSource, NULL); // прикрепляем код шейдера, к обьекту шейдера
-	glCompileShader(vertexShader); // компилируем шейдер
-	IsCompileVertexShaderSuccessfully(vertexShader);// првоерка компиляции
+	//Создаем шейдерную программу
+	Shader shader("shaders/vertex.glsl", "shaders/fragment.glsl");
 
-	//Создание фрагментного шейдера
-	fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-	glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
-	glCompileShader(fragmentShader);
-	IsCompileFragmentShaderSuccessfully(fragmentShader);
 
-	//Создание шейдерной программы
-	shaderProgram = glCreateProgram(); //создает программу и возвращает ссылку ID на созданный объект программы
-	glAttachShader(shaderProgram, vertexShader); //присоединяем шейдеры к обьекту шейдерной программы 
-	glAttachShader(shaderProgram, fragmentShader);
-	glLinkProgram(shaderProgram); // связываем шейдеры
-	IsLinkingShaderProgramSuccessfully(shaderProgram);
-
-	//Удаляем обьекты шейдеров после связывания с программой
-	glDeleteShader(vertexShader);
-	glDeleteShader(fragmentShader);
-	
-
-	
 	//Создание оббекта буфера данных VBO, обьекта буфера элементов EBO и обьекта массива вершин VAO в видеопамяти
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO); //генерируем уникальный идентификатор буфера-обьекта вершин Опенгл и создаем этот обьект
@@ -187,19 +110,16 @@ int main() {
 		glClear(GL_COLOR_BUFFER_BIT);
 		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); //режим рисования каркаса если надо, а это чтобы вернуть в исходный режим рисования - glPolygonMode(GL_FRONT_AND_BACK, GL_FILL).
 		
+		shader.UseShaderProgram();
+
 		//Uniform значения
-		float timeValue = glfwGetTime();
-		float greenValue = (sin(timeValue) / 2.0f) + 0.5f;
-		int vertexColorLocation = glGetUniformLocation(shaderProgram, "ourColor");
-
-		glUseProgram(shaderProgram);//активируем программу шейдеров
-
-		glUniform4f(vertexColorLocation, 0.0f, greenValue, 0.0f, 1.0f); //задаем параметры для униформ переменной которая проигрывается в шейдере
+		//float timeValue = glfwGetTime();
+		//float greenValue = (sin(timeValue) / 2.0f) + 0.5f;
+		//shader.SetUniformVec4("ourColor", 0.0f, greenValue, 0.0f, 1.0f);
 
 		glBindVertexArray(VAO); //связывание с VAO автоматически связываает EBO, всегда отвязываем EBO  после отвязки VAO
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);  //отрисовка 
 	
-
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 		
