@@ -75,11 +75,12 @@ float vertices_tr[] = {
   0.0f,0.5f, 0.0f
 };
 
+//данные о позиции и цвете вершин
 float vertices[] = {
-  0.5f,  0.5f, 0.0f,
-  0.5f, -0.5f, 0.0f,
- -0.5f, -0.5f, 0.0f,
- -0.5f,  0.5f, 0.0f
+  0.5f,  0.5f, 0.0f, 0.3f, 0.5f, 0.0f, 
+  0.5f, -0.5f, 0.0f, 0.5f, 0.4f, 1.0f,
+ -0.5f, -0.5f, 0.0f, 0.2f, 0.8f, 0.0f,
+ -0.5f,  0.5f, 0.0f, 0.1f, 0.7f, 1.0f
 };
 
 unsigned int indices[] = {
@@ -90,16 +91,19 @@ unsigned int indices[] = {
 
 const char* vertexShaderSource = "#version 330 core\n"
 "layout (location = 0) in vec3 aPos;\n" //указатель расположения атрибутов вершин
-"out vec4 vertexColor;\n" //обьефвляем переменную для цвета и последуюющей перадчи во фрагментный ешейдер
+"layout (location = 1) in vec3 aColor;\n"
+//"out vec4 vertexColor;\n" //обьефвляем переменную для цвета и последуюющей перадчи во фрагментный ешейдер
+"out vec3 ourColor;\n"
 "void main()\n"
-"{gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0); vertexColor = vec4(0.5, 0.0, 0.0, 1.0);}";
+"{gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0); ourColor = aColor;}"; //vertexColor = vec4(0.5, 0.0, 0.0, 1.0); }"; - ранний пример передачи vertexColor в фрагментный шейдер
 
 const char* fragmentShaderSource = "#version 330 core\n"
 "out vec4 FragColor;\n"
-"in vec4 vertexColor;\n" //принимаем переменную для цвета из вертексного шейдера
-"uniform vec4 ourColor;\n" // юниформ переменная - является глобальной, позволяет задавать их значение на любом этапе шейдера, поэтому незачем определять их в вершинном шейдере//если обьявить униформ переменную и не использовать ее компилятор удалит ее без предупреждения из скомпилированной версии
+//"in vec4 vertexColor;\n" //принимаем переменную для цвета из вертексного шейдера
+"in vec3 ourColor;\n"
+//"uniform vec4 ourColor;\n" // юниформ переменная - является глобальной, позволяет задавать их значение на любом этапе шейдера, поэтому незачем определять их в вершинном шейдере//если обьявить униформ переменную и не использовать ее компилятор удалит ее без предупреждения из скомпилированной версии
 "void main()\n"
-"{FragColor = ourColor;}";
+"{FragColor = vec4(ourColor, 1.0);}";
 
 
 
@@ -164,8 +168,10 @@ int main() {
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW); // копируем данные вершин из массива оперативной памяти в буфер видеопамяти видеокарты
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);// копируем данные индексов из массива оперативной памяти в буфер видеопамяти видеокарты
 
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);// устанавливаем указатели атрибутов вершин, чтобы сказать опенгл как он должен интерпритировать данные вершины
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);// устанавливаем указатели атрибутов вершин, чтобы сказать опенгл как он должен интерпритировать данные вершины
 	glEnableVertexAttribArray(0);// включаем атрибут вершины
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));// устанавливаем указатели атрибутов цвета
+	glEnableVertexAttribArray(1);// включаем атрибут цвета
 
 	//отвязываем буферы кроме EBO иначе VAO потеряет доступ к нему
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
