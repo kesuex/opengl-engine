@@ -66,6 +66,9 @@ unsigned int vertexShader;
 unsigned int fragmentShader;
 unsigned int shaderProgram;
 
+
+
+
 float vertices_tr[] = {
   -0.5f, -0.5f, 0.0f,
   0.5f, -0.5f, 0.0f,
@@ -86,14 +89,17 @@ unsigned int indices[] = {
 
 
 const char* vertexShaderSource = "#version 330 core\n"
-"layout (location = 0) in vec3 aPos;\n"
+"layout (location = 0) in vec3 aPos;\n" //указатель расположения атрибутов вершин
+"out vec4 vertexColor;\n" //обьефвляем переменную для цвета и последуюющей перадчи во фрагментный ешейдер
 "void main()\n"
-"{gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);}";
+"{gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0); vertexColor = vec4(0.5, 0.0, 0.0, 1.0);}";
 
 const char* fragmentShaderSource = "#version 330 core\n"
 "out vec4 FragColor;\n"
+"in vec4 vertexColor;\n" //принимаем переменную для цвета из вертексного шейдера
+"uniform vec4 ourColor;\n" // юниформ переменная - является глобальной, позволяет задавать их значение на любом этапе шейдера, поэтому незачем определять их в вершинном шейдере//если обьявить униформ переменную и не использовать ее компилятор удалит ее без предупреждения из скомпилированной версии
 "void main()\n"
-"{FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);}";
+"{FragColor = ourColor;}";
 
 
 
@@ -143,7 +149,7 @@ int main() {
 	//Удаляем обьекты шейдеров после связывания с программой
 	glDeleteShader(vertexShader);
 	glDeleteShader(fragmentShader);
-
+	
 
 	
 	//Создание оббекта буфера данных VBO, обьекта буфера элементов EBO и обьекта массива вершин VAO в видеопамяти
@@ -174,9 +180,18 @@ int main() {
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); //режим рисования каркаса если надо, а это чтобы вернуть в исходный режим рисования - glPolygonMode(GL_FRONT_AND_BACK, GL_FILL).
+		
+		//Uniform значения
+		float timeValue = glfwGetTime();
+		float greenValue = (sin(timeValue) / 2.0f) + 0.5f;
+		int vertexColorLocation = glGetUniformLocation(shaderProgram, "ourColor");
+
 		glUseProgram(shaderProgram);//активируем программу шейдеров
-		glBindVertexArray(VAO); // связывание с VAO автоматически связываает EBO, всегда отвязываем EBO  после отвязки VAO
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+		glUniform4f(vertexColorLocation, 0.0f, greenValue, 0.0f, 1.0f); //задаем параметры для униформ переменной которая проигрывается в шейдере
+
+		glBindVertexArray(VAO); //связывание с VAO автоматически связываает EBO, всегда отвязываем EBO  после отвязки VAO
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);  //отрисовка 
 	
 
 		glfwSwapBuffers(window);
