@@ -15,4 +15,5 @@ public:
 	void IsLinkingShaderProgramSuccessfully(unsigned int shaderProgram);
 	void UseShaderProgram();
 	void SetUniformVec4(const std::string& name, float x, float y, float z, float w) const;
+	void SetUniformInt(const std::string& name, int value) const;
 };
