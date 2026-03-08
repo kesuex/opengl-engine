@@ -1,5 +1,8 @@
 #pragma once
 #include <glad/glad.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp> 
+#include <glm/gtc/type_ptr.hpp>
 #include <fstream>
 #include <sstream>
 #include <iostream>
@@ -16,4 +19,5 @@ public:
 	void UseShaderProgram();
 	void SetUniformVec4(const std::string& name, float x, float y, float z, float w) const;
 	void SetUniformInt(const std::string& name, int value) const;
+	void SetUniformMatrix4fv(const std::string& name, int matrixCount, glm::mat4 matrix) const;
 };
