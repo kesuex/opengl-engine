@@ -9,6 +9,21 @@
 #include "Shader.h"
 
 /*
+OpenGL ожидает, что все вершины, которые мы хотим сделать видимыми, будут
+находиться в нормализованных координатах устройства после каждого запуска шейдера вершин. То есть координаты x,
+y и z каждой вершины должны находиться в диапазоне от -1,0 до 1,0; координаты за пределами этого
+диапазона не будут видны.
+
+Всего существует 5 различных систем координат:
+• Локальное пространство (или пространство объекта)
+• Мировое пространство
+• Пространство просмотра (или пространство глаза)
+• Пространство клипа
+• Пространство экрана
+
+Все это различные состояния, в которые будут преобразованы наши вершины, прежде чем они окончательно
+превратятся в фрагменты.
+
 Сложение и вычитание определены только для матриц одинаковых
 размеров. Матрица 3x2 и матрица 2x3 (или матрица 3x3 и матрица 4x4) не могут быть сложены или вычтены друг из
 друга.
@@ -63,7 +78,7 @@ unsigned int VAO; //контейнер/конфигурация, который 
 															 // -какой EBO привязан
 															// - как интерпретировать данные(glVertexAttribPointer
 
-
+/*
 //данные о позиции и цвете вершин и координаты текстур
 float vertices[] = {
 
@@ -73,6 +88,73 @@ float vertices[] = {
  -0.5f,  0.5f, 0.0f,   0.1f, 0.7f, 1.0f,   0.0f, 1.0f
 
 };
+*/
+
+float vertices[] = {
+	// positions          // colors            // tex coords
+	// Back face
+	-0.5f, -0.5f, -0.5f,  1.0f, 0.0f, 0.0f,  0.0f, 0.0f,
+	 0.5f, -0.5f, -0.5f,  0.0f, 1.0f, 0.0f,  1.0f, 0.0f,
+	 0.5f,  0.5f, -0.5f,  0.0f, 0.0f, 1.0f,  1.0f, 1.0f,
+	 0.5f,  0.5f, -0.5f,  0.0f, 0.0f, 1.0f,  1.0f, 1.0f,
+	-0.5f,  0.5f, -0.5f,  1.0f, 1.0f, 0.0f,  0.0f, 1.0f,
+	-0.5f, -0.5f, -0.5f,  1.0f, 0.0f, 0.0f,  0.0f, 0.0f,
+
+	// Front face
+	-0.5f, -0.5f,  0.5f,  1.0f, 0.0f, 0.0f,  0.0f, 0.0f,
+	 0.5f, -0.5f,  0.5f,  0.0f, 1.0f, 0.0f,  1.0f, 0.0f,
+	 0.5f,  0.5f,  0.5f,  0.0f, 0.0f, 1.0f,  1.0f, 1.0f,
+	 0.5f,  0.5f,  0.5f,  0.0f, 0.0f, 1.0f,  1.0f, 1.0f,
+	-0.5f,  0.5f,  0.5f,  1.0f, 1.0f, 0.0f,  0.0f, 1.0f,
+	-0.5f, -0.5f,  0.5f,  1.0f, 0.0f, 0.0f,  0.0f, 0.0f,
+
+	// Left face
+	-0.5f,  0.5f,  0.5f,  1.0f, 0.0f, 1.0f,  1.0f, 0.0f,
+	-0.5f,  0.5f, -0.5f,  0.0f, 1.0f, 1.0f,  1.0f, 1.0f,
+	-0.5f, -0.5f, -0.5f,  1.0f, 0.5f, 0.0f,  0.0f, 1.0f,
+	-0.5f, -0.5f, -0.5f,  1.0f, 0.5f, 0.0f,  0.0f, 1.0f,
+	-0.5f, -0.5f,  0.5f,  0.5f, 0.0f, 1.0f,  0.0f, 0.0f,
+	-0.5f,  0.5f,  0.5f,  1.0f, 0.0f, 1.0f,  1.0f, 0.0f,
+
+	// Right face
+	 0.5f,  0.5f,  0.5f,  1.0f, 0.0f, 1.0f,  1.0f, 0.0f,
+	 0.5f,  0.5f, -0.5f,  0.0f, 1.0f, 1.0f,  1.0f, 1.0f,
+	 0.5f, -0.5f, -0.5f,  1.0f, 0.5f, 0.0f,  0.0f, 1.0f,
+	 0.5f, -0.5f, -0.5f,  1.0f, 0.5f, 0.0f,  0.0f, 1.0f,
+	 0.5f, -0.5f,  0.5f,  0.5f, 0.0f, 1.0f,  0.0f, 0.0f,
+	 0.5f,  0.5f,  0.5f,  1.0f, 0.0f, 1.0f,  1.0f, 0.0f,
+
+	 // Bottom face
+	 -0.5f, -0.5f, -0.5f,  0.5f, 0.5f, 0.5f,  0.0f, 1.0f,
+	  0.5f, -0.5f, -0.5f,  0.0f, 0.5f, 0.5f,  1.0f, 1.0f,
+	  0.5f, -0.5f,  0.5f,  0.5f, 0.0f, 0.5f,  1.0f, 0.0f,
+	  0.5f, -0.5f,  0.5f,  0.5f, 0.0f, 0.5f,  1.0f, 0.0f,
+	 -0.5f, -0.5f,  0.5f,  0.5f, 0.5f, 0.0f,  0.0f, 0.0f,
+	 -0.5f, -0.5f, -0.5f,  0.5f, 0.5f, 0.5f,  0.0f, 1.0f,
+
+	 // Top face
+	 -0.5f,  0.5f, -0.5f,  1.0f, 1.0f, 1.0f,  0.0f, 1.0f,
+	  0.5f,  0.5f, -0.5f,  1.0f, 1.0f, 0.0f,  1.0f, 1.0f,
+	  0.5f,  0.5f,  0.5f,  0.0f, 1.0f, 1.0f,  1.0f, 0.0f,
+	  0.5f,  0.5f,  0.5f,  0.0f, 1.0f, 1.0f,  1.0f, 0.0f,
+	 -0.5f,  0.5f,  0.5f,  1.0f, 0.0f, 1.0f,  0.0f, 0.0f,
+	 -0.5f,  0.5f, -0.5f,  1.0f, 1.0f, 1.0f,  0.0f, 1.0f
+};
+
+glm::vec3 cubePositions[] = {
+	glm::vec3(0.0f,  0.0f,   0.0f),
+	glm::vec3(2.0f,  5.0f, -15.0f),
+	glm::vec3(-1.5f, -2.2f,  -2.5f),
+	glm::vec3(-3.8f, -2.0f, -12.3f),
+	glm::vec3(2.4f, -0.4f,  -3.5f),
+	glm::vec3(-1.7f,  3.0f,  -7.5f),
+	glm::vec3(1.3f, -2.0f,  -2.5f),
+	glm::vec3(1.5f,  2.0f,  -2.5f),
+	glm::vec3(1.5f,  0.2f,  -1.5f),
+	glm::vec3(-1.3f,  1.0f,  -1.5f)
+};
+
+
 
 unsigned int indices[] = {
   0, 1, 3,
@@ -212,13 +294,27 @@ int main() {
 	shader.UseShaderProgram();
 	shader.SetUniformInt("texture1", 0); //отправляем текстуры в фрагментный шейдер
 	shader.SetUniformInt("texture2", 1);
-
+	/*
 	glm::mat4 trans = glm::mat4(1.0f); //инициализация единичной матрицы
 	trans = glm::translate(trans, glm::vec3(0.5f, -0.5f, 0.0f));
 	trans = glm::rotate(trans, glm::radians(90.0f), glm::vec3(0.0, 0.0, 1.0)); //2 шаг - создание матрицы преобразования где мы передаем единичную матрицу и вектор оси поворота по z и угла поворота в радианах
 	trans = glm::scale(trans, glm::vec3(0.5, 0.5, 0.5)); //1 шаг - создание матрицы преобразования где мы передаем единичную матрицу и вектор масштабирования
 	glm::mat4 savedTrans = trans;
 	shader.SetUniformMatrix4fv("transform", 1, trans); //отправляем матрицу в вершинны шейдер
+	*/
+	glm::mat4 model = glm::mat4(1.0f);
+	model = glm::rotate(model, glm::radians(-55.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+
+	glm::mat4 view = glm::mat4(1.0f);
+	// перемещаем сцену в обратном направлении 
+	view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
+
+	glm::mat4 projection;
+	projection = glm::perspective(glm::radians(45.0f), 800.0f / 600.0f, 0.1f, 100.0f);
+	shader.SetUniformMatrix4fv("view", 1, view);
+	shader.SetUniformMatrix4fv("projection", 1, projection);
+
+	glEnable(GL_DEPTH_TEST); // включаем буфер глубины чтобы передние и задние обьекты не перезаписывали друг друга
 
 
 	while (!glfwWindowShouldClose(window)) {
@@ -226,19 +322,21 @@ int main() {
 		processInput(window);	
 
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT);
-		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); //режим рисования каркаса если надо, а это чтобы вернуть в исходный режим рисования - glPolygonMode(GL_FRONT_AND_BACK, GL_FILL).
-		
-		shader.UseShaderProgram();
+		//glClear(GL_COLOR_BUFFER_BIT);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // очищаем буферы глубины и цвета, иначе предыдущая информация от предыдщего кадра останется в буфере
+		/*
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); //режим рисования каркаса если надо, а это чтобы вернуть в исходный режим рисования - glPolygonMode(GL_FRONT_AND_BACK, GL_FILL).
 		//эксперементируем с постоянным вращением 
 		glm::mat4 savedTrans = trans;
 		savedTrans = glm::rotate(savedTrans, (float)glfwGetTime(), glm::vec3(0.0f, 0.0f, 1.0f));
 		shader.SetUniformMatrix4fv("transform", 1, savedTrans); //отправляем матрицу в вершинны шейдер
-
 		//Uniform значения
-		//float timeValue = glfwGetTime();
-		//float greenValue = (sin(timeValue) / 2.0f) + 0.5f;
-		//shader.SetUniformVec4("ourColor", 0.0f, greenValue, 0.0f, 1.0f);
+		float timeValue = glfwGetTime();
+		float greenValue = (sin(timeValue) / 2.0f) + 0.5f;
+		shader.SetUniformVec4("ourColor", 0.0f, greenValue, 0.0f, 1.0f);
+		*/
+
+		shader.UseShaderProgram();
 
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, texture1);
@@ -246,8 +344,22 @@ int main() {
 		glBindTexture(GL_TEXTURE_2D, texture2);
 
 		glBindVertexArray(VAO); //связывание с VAO автоматически связываает EBO, всегда отвязываем EBO  после отвязки VAO
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);  //отрисовка 
-	
+		//glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);  //отрисовка 
+		//glDrawArrays(GL_TRIANGLES, 0, 36); //этот метод используется для отрисовки когда у нас только массив вершин и нет массива индексов
+
+		for (int i = 0; i < sizeof(cubePositions) / sizeof(glm::vec3); ++i) {
+
+			float angle = 20.0f * i;
+
+			glm::mat4 model = glm::mat4(1.0f);
+			model = glm::translate(model, cubePositions[i]);
+			model = glm::rotate(model, (float)glfwGetTime() * glm::radians(angle), glm::vec3(0.5f, 1.0f, 0.0f));
+
+			shader.SetUniformMatrix4fv("model", 1, model);
+
+			glDrawArrays(GL_TRIANGLES, 0, 36);
+		}
+
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 		
