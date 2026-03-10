@@ -49,19 +49,105 @@ y и z каждой вершины должны находиться в диап
 переносы, иначе они могут (негативно) влиять друг на друга.
 */
 
+
+glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
+glm::vec3 cameraTarget = glm::vec3(0.0f, 0.0f, 0.0f);
+glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+
+glm::mat4 view;
+glm::mat4 projection;
+
+float deltaTime = 0.0f; // Время между текущим кадром и последним кадром 
+float lastFrame = 0.0f; // Время последнего кадра
+float currentFrame;
+
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 	glViewport(0, 0, width, height); //задаем размер отображения для опенгл в нашем окне GLFW
 }
 
 void processInput(GLFWwindow* window) {
-	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
-		glfwSetWindowShouldClose(window, true);
+
+	currentFrame = glfwGetTime(); 
+	deltaTime = currentFrame - lastFrame; 
+	lastFrame = currentFrame;
+
+	float cameraSpeed = 2.5f * deltaTime;
+
+	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) 
+		glfwSetWindowShouldClose(window, true);	 
+
+	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+		cameraPos += cameraSpeed * cameraFront;
+	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+		cameraPos -= cameraSpeed * cameraFront;
+	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+		cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+		cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+}
+
+bool firstMouse = true;
+double lastX;
+double lastY;
+float yaw;
+float pitch;
+float zoom = 45.0f;
+
+void mouse_callback(GLFWwindow* window, double xpos, double ypos)
+{
+	float sensitivity = 0.1f;
+	float xoffset;
+	float yoffset;
+	glm::vec3 direction;
+
+	if (firstMouse)
+	{
+		lastX = xpos;
+		lastY = ypos;
+		firstMouse = false;
 	}
+
+	xoffset = xpos - lastX; 
+	yoffset = lastY - ypos; 
+
+	lastX = xpos;
+	lastY = ypos;
+
+	xoffset *= sensitivity;
+	yoffset *= sensitivity;
+
+	yaw += xoffset; 
+	pitch += yoffset;
+
+	if (pitch >= 89.0f)
+		pitch = 89.0f;
+	if (pitch <= -89.0f)
+		pitch = -89.0f;
+
+	
+	direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+	direction.y = sin(glm::radians(pitch));
+	direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch)); 
+	cameraFront = glm::normalize(direction);
+}
+
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+{
+	zoom -= (float)yoffset; 
+	if (zoom <= 1.0f)
+		zoom = 1.0f; 
+	if (zoom >= 45.0f)	
+		zoom = 45.0f;
 }
 
 
-unsigned int WIDTH = 800;
-unsigned int HEIGHT = 600;
+
+
+unsigned int scrWIDTH = 800;
+unsigned int scrHEIGHT = 600;
+
+
 
 /*
 VBO — VAO запоминает не сам VBO, а настройку glVertexAttribPointer.После того как настройка записана, VBO можно
@@ -78,18 +164,8 @@ unsigned int VAO; //контейнер/конфигурация, который 
 															 // -какой EBO привязан
 															// - как интерпретировать данные(glVertexAttribPointer
 
-/*
+
 //данные о позиции и цвете вершин и координаты текстур
-float vertices[] = {
-
-  0.5f,  0.5f, 0.0f,   0.3f, 0.5f, 0.0f,   1.0f, 1.0f,
-  0.5f, -0.5f, 0.0f,   0.5f, 0.4f, 1.0f,   1.0f, 0.0f,
- -0.5f, -0.5f, 0.0f,   0.2f, 0.8f, 0.0f,   0.0f, 0.0f,
- -0.5f,  0.5f, 0.0f,   0.1f, 0.7f, 1.0f,   0.0f, 1.0f
-
-};
-*/
-
 float vertices[] = {
 	// positions          // colors            // tex coords
 	// Back face
@@ -161,18 +237,11 @@ unsigned int indices[] = {
   1, 2, 3
 };
 
+
 int texWidth, texHeight, texnrChannels;
 unsigned int texture1;
 unsigned int texture2;
 unsigned char* texData;
-
-
-float texCoords[] = {
-  0.0f, 0.0f,
-  1.0f, 0.0f,
-  0.0f, 1.0f,
-  1.0f, 1.0f
-};
 
 
 
@@ -184,7 +253,7 @@ int main() {
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 
-	GLFWwindow* window = glfwCreateWindow(WIDTH, HEIGHT, "Window", NULL, NULL);
+	GLFWwindow* window = glfwCreateWindow(scrWIDTH, scrHEIGHT, "Window", NULL, NULL);
 	if (window == NULL) {
 		std::cout << "Error creating window";
 		glfwTerminate();
@@ -302,24 +371,24 @@ int main() {
 	glm::mat4 savedTrans = trans;
 	shader.SetUniformMatrix4fv("transform", 1, trans); //отправляем матрицу в вершинны шейдер
 	*/
-	glm::mat4 model = glm::mat4(1.0f);
-	model = glm::rotate(model, glm::radians(-55.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 
-	glm::mat4 view = glm::mat4(1.0f);
-	// перемещаем сцену в обратном направлении 
-	view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
+    // перемещаем сцену в обратном направлении //view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
 
-	glm::mat4 projection;
-	projection = glm::perspective(glm::radians(45.0f), 800.0f / 600.0f, 0.1f, 100.0f);
-	shader.SetUniformMatrix4fv("view", 1, view);
-	shader.SetUniformMatrix4fv("projection", 1, projection);
+																
+
+	
+	
+
+	
 
 	glEnable(GL_DEPTH_TEST); // включаем буфер глубины чтобы передние и задние обьекты не перезаписывали друг друга
-
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
 	while (!glfwWindowShouldClose(window)) {
 
 		processInput(window);	
+		glfwSetCursorPosCallback(window, mouse_callback);
+		glfwSetScrollCallback(window, scroll_callback);
 
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		//glClear(GL_COLOR_BUFFER_BIT);
@@ -337,6 +406,12 @@ int main() {
 		*/
 
 		shader.UseShaderProgram();
+
+		view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+		shader.SetUniformMatrix4fv("view", 1, view);
+
+		projection = glm::perspective(glm::radians(zoom), 800.0f / 600.0f, 0.1f, 100.0f);
+		shader.SetUniformMatrix4fv("projection", 1, projection);
 
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, texture1);
