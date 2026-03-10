@@ -7,6 +7,7 @@
 #include "stb_image.h";
 
 #include "Shader.h"
+#include "Camera.h"
 
 /*
 OpenGL ожидает, что все вершины, которые мы хотим сделать видимыми, будут
@@ -47,100 +48,26 @@ y и z каждой вершины должны находиться в диап
 При умножении матриц сначала умножается крайняя правая матрица на вектор, поэтому умножение следует читать справа налево. При
 комбинировании матриц рекомендуется сначала выполнять операции масштабирования, затем повороты и, наконец,
 переносы, иначе они могут (негативно) влиять друг на друга.
+
+
+//glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);  //отрисовка с помощью массива индексов
+//glDrawArrays(GL_TRIANGLES, 0, 36); //этот метод используется для отрисовки когда у нас только массив вершин и нет массива индексов
 */
 
+Camera camera;
 
-glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
-glm::vec3 cameraTarget = glm::vec3(0.0f, 0.0f, 0.0f);
-glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
-glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
-
-glm::mat4 view;
-glm::mat4 projection;
-
-float deltaTime = 0.0f; // Время между текущим кадром и последним кадром 
-float lastFrame = 0.0f; // Время последнего кадра
-float currentFrame;
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 	glViewport(0, 0, width, height); //задаем размер отображения для опенгл в нашем окне GLFW
 }
 
-void processInput(GLFWwindow* window) {
 
-	currentFrame = glfwGetTime(); 
-	deltaTime = currentFrame - lastFrame; 
-	lastFrame = currentFrame;
-
-	float cameraSpeed = 2.5f * deltaTime;
-
-	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) 
-		glfwSetWindowShouldClose(window, true);	 
-
-	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-		cameraPos += cameraSpeed * cameraFront;
-	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-		cameraPos -= cameraSpeed * cameraFront;
-	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-		cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
-	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-		cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
+	camera.ProcessMouseMovement(xpos, ypos);
 }
-
-bool firstMouse = true;
-double lastX;
-double lastY;
-float yaw;
-float pitch;
-float zoom = 45.0f;
-
-void mouse_callback(GLFWwindow* window, double xpos, double ypos)
-{
-	float sensitivity = 0.1f;
-	float xoffset;
-	float yoffset;
-	glm::vec3 direction;
-
-	if (firstMouse)
-	{
-		lastX = xpos;
-		lastY = ypos;
-		firstMouse = false;
-	}
-
-	xoffset = xpos - lastX; 
-	yoffset = lastY - ypos; 
-
-	lastX = xpos;
-	lastY = ypos;
-
-	xoffset *= sensitivity;
-	yoffset *= sensitivity;
-
-	yaw += xoffset; 
-	pitch += yoffset;
-
-	if (pitch >= 89.0f)
-		pitch = 89.0f;
-	if (pitch <= -89.0f)
-		pitch = -89.0f;
-
-	
-	direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
-	direction.y = sin(glm::radians(pitch));
-	direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch)); 
-	cameraFront = glm::normalize(direction);
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
+	camera.ProcessScrolling(xoffset, yoffset);
 }
-
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
-{
-	zoom -= (float)yoffset; 
-	if (zoom <= 1.0f)
-		zoom = 1.0f; 
-	if (zoom >= 45.0f)	
-		zoom = 45.0f;
-}
-
 
 
 
@@ -148,7 +75,8 @@ unsigned int scrWIDTH = 800;
 unsigned int scrHEIGHT = 600;
 
 
-
+glm::mat4 projection;
+glm::mat4 view;
 /*
 VBO — VAO запоминает не сам VBO, а настройку glVertexAttribPointer.После того как настройка записана, VBO можно
 отвязать — VAO уже знает что нужно.
@@ -167,55 +95,53 @@ unsigned int VAO; //контейнер/конфигурация, который 
 
 //данные о позиции и цвете вершин и координаты текстур
 float vertices[] = {
-	// positions          // colors            // tex coords
-	// Back face
-	-0.5f, -0.5f, -0.5f,  1.0f, 0.0f, 0.0f,  0.0f, 0.0f,
-	 0.5f, -0.5f, -0.5f,  0.0f, 1.0f, 0.0f,  1.0f, 0.0f,
-	 0.5f,  0.5f, -0.5f,  0.0f, 0.0f, 1.0f,  1.0f, 1.0f,
-	 0.5f,  0.5f, -0.5f,  0.0f, 0.0f, 1.0f,  1.0f, 1.0f,
-	-0.5f,  0.5f, -0.5f,  1.0f, 1.0f, 0.0f,  0.0f, 1.0f,
-	-0.5f, -0.5f, -0.5f,  1.0f, 0.0f, 0.0f,  0.0f, 0.0f,
+	// Front face (4 вершины)
+	-0.5f, -0.5f,  0.5f,  1.0f, 0.0f, 0.0f,  0.0f, 0.0f,  // 0
+	 0.5f, -0.5f,  0.5f,  0.0f, 1.0f, 0.0f,  1.0f, 0.0f,  // 1
+	 0.5f,  0.5f,  0.5f,  0.0f, 0.0f, 1.0f,  1.0f, 1.0f,  // 2
+	-0.5f,  0.5f,  0.5f,  1.0f, 1.0f, 0.0f,  0.0f, 1.0f,  // 3
 
-	// Front face
-	-0.5f, -0.5f,  0.5f,  1.0f, 0.0f, 0.0f,  0.0f, 0.0f,
-	 0.5f, -0.5f,  0.5f,  0.0f, 1.0f, 0.0f,  1.0f, 0.0f,
-	 0.5f,  0.5f,  0.5f,  0.0f, 0.0f, 1.0f,  1.0f, 1.0f,
-	 0.5f,  0.5f,  0.5f,  0.0f, 0.0f, 1.0f,  1.0f, 1.0f,
-	-0.5f,  0.5f,  0.5f,  1.0f, 1.0f, 0.0f,  0.0f, 1.0f,
-	-0.5f, -0.5f,  0.5f,  1.0f, 0.0f, 0.0f,  0.0f, 0.0f,
+	// Back face (4 вершины)
+	-0.5f, -0.5f, -0.5f,  1.0f, 0.0f, 0.0f,  1.0f, 0.0f,  // 4
+	 0.5f, -0.5f, -0.5f,  0.0f, 1.0f, 0.0f,  0.0f, 0.0f,  // 5
+	 0.5f,  0.5f, -0.5f,  0.0f, 0.0f, 1.0f,  0.0f, 1.0f,  // 6
+	-0.5f,  0.5f, -0.5f,  1.0f, 1.0f, 0.0f,  1.0f, 1.0f,  // 7
 
-	// Left face
-	-0.5f,  0.5f,  0.5f,  1.0f, 0.0f, 1.0f,  1.0f, 0.0f,
-	-0.5f,  0.5f, -0.5f,  0.0f, 1.0f, 1.0f,  1.0f, 1.0f,
-	-0.5f, -0.5f, -0.5f,  1.0f, 0.5f, 0.0f,  0.0f, 1.0f,
-	-0.5f, -0.5f, -0.5f,  1.0f, 0.5f, 0.0f,  0.0f, 1.0f,
-	-0.5f, -0.5f,  0.5f,  0.5f, 0.0f, 1.0f,  0.0f, 0.0f,
-	-0.5f,  0.5f,  0.5f,  1.0f, 0.0f, 1.0f,  1.0f, 0.0f,
+	// Left face (4 вершины)
+	-0.5f, -0.5f, -0.5f,  1.0f, 0.5f, 0.0f,  0.0f, 0.0f,  // 8
+	-0.5f, -0.5f,  0.5f,  0.5f, 0.0f, 1.0f,  1.0f, 0.0f,  // 9
+	-0.5f,  0.5f,  0.5f,  1.0f, 0.0f, 1.0f,  1.0f, 1.0f,  // 10
+	-0.5f,  0.5f, -0.5f,  0.0f, 1.0f, 1.0f,  0.0f, 1.0f,  // 11
 
-	// Right face
-	 0.5f,  0.5f,  0.5f,  1.0f, 0.0f, 1.0f,  1.0f, 0.0f,
-	 0.5f,  0.5f, -0.5f,  0.0f, 1.0f, 1.0f,  1.0f, 1.0f,
-	 0.5f, -0.5f, -0.5f,  1.0f, 0.5f, 0.0f,  0.0f, 1.0f,
-	 0.5f, -0.5f, -0.5f,  1.0f, 0.5f, 0.0f,  0.0f, 1.0f,
-	 0.5f, -0.5f,  0.5f,  0.5f, 0.0f, 1.0f,  0.0f, 0.0f,
-	 0.5f,  0.5f,  0.5f,  1.0f, 0.0f, 1.0f,  1.0f, 0.0f,
+	// Right face (4 вершины)
+	 0.5f, -0.5f,  0.5f,  0.5f, 0.0f, 1.0f,  0.0f, 0.0f,  // 12
+	 0.5f, -0.5f, -0.5f,  1.0f, 0.5f, 0.0f,  1.0f, 0.0f,  // 13
+	 0.5f,  0.5f, -0.5f,  0.0f, 1.0f, 1.0f,  1.0f, 1.0f,  // 14
+	 0.5f,  0.5f,  0.5f,  1.0f, 0.0f, 1.0f,  0.0f, 1.0f,  // 15
 
-	 // Bottom face
-	 -0.5f, -0.5f, -0.5f,  0.5f, 0.5f, 0.5f,  0.0f, 1.0f,
-	  0.5f, -0.5f, -0.5f,  0.0f, 0.5f, 0.5f,  1.0f, 1.0f,
-	  0.5f, -0.5f,  0.5f,  0.5f, 0.0f, 0.5f,  1.0f, 0.0f,
-	  0.5f, -0.5f,  0.5f,  0.5f, 0.0f, 0.5f,  1.0f, 0.0f,
-	 -0.5f, -0.5f,  0.5f,  0.5f, 0.5f, 0.0f,  0.0f, 0.0f,
-	 -0.5f, -0.5f, -0.5f,  0.5f, 0.5f, 0.5f,  0.0f, 1.0f,
+	 // Bottom face (4 вершины)
+	 -0.5f, -0.5f, -0.5f,  0.5f, 0.5f, 0.5f,  0.0f, 1.0f,  // 16
+	  0.5f, -0.5f, -0.5f,  0.0f, 0.5f, 0.5f,  1.0f, 1.0f,  // 17
+	  0.5f, -0.5f,  0.5f,  0.5f, 0.0f, 0.5f,  1.0f, 0.0f,  // 18
+	 -0.5f, -0.5f,  0.5f,  0.5f, 0.5f, 0.0f,  0.0f, 0.0f,  // 19
 
-	 // Top face
-	 -0.5f,  0.5f, -0.5f,  1.0f, 1.0f, 1.0f,  0.0f, 1.0f,
-	  0.5f,  0.5f, -0.5f,  1.0f, 1.0f, 0.0f,  1.0f, 1.0f,
-	  0.5f,  0.5f,  0.5f,  0.0f, 1.0f, 1.0f,  1.0f, 0.0f,
-	  0.5f,  0.5f,  0.5f,  0.0f, 1.0f, 1.0f,  1.0f, 0.0f,
-	 -0.5f,  0.5f,  0.5f,  1.0f, 0.0f, 1.0f,  0.0f, 0.0f,
-	 -0.5f,  0.5f, -0.5f,  1.0f, 1.0f, 1.0f,  0.0f, 1.0f
+	 // Top face (4 вершины)
+	 -0.5f,  0.5f,  0.5f,  1.0f, 0.0f, 1.0f,  0.0f, 0.0f,  // 20
+	  0.5f,  0.5f,  0.5f,  0.0f, 1.0f, 1.0f,  1.0f, 0.0f,  // 21
+	  0.5f,  0.5f, -0.5f,  1.0f, 1.0f, 0.0f,  1.0f, 1.0f,  // 22
+	 -0.5f,  0.5f, -0.5f,  1.0f, 1.0f, 1.0f,  0.0f, 1.0f,  // 23
 };
+
+unsigned int indices[] = {
+  0, 1, 2,     2, 3, 0,
+  4, 5, 6,     6, 7, 4,
+  8, 9, 10,    10, 11, 8,
+  12, 13, 14,  14, 15, 12,
+  16, 17, 18,  18, 19, 16,
+  20, 21, 22,  22, 23, 20
+};
+
+
 
 glm::vec3 cubePositions[] = {
 	glm::vec3(0.0f,  0.0f,   0.0f),
@@ -232,10 +158,7 @@ glm::vec3 cubePositions[] = {
 
 
 
-unsigned int indices[] = {
-  0, 1, 3,
-  1, 2, 3
-};
+
 
 
 int texWidth, texHeight, texnrChannels;
@@ -373,25 +296,18 @@ int main() {
 	*/
 
     // перемещаем сцену в обратном направлении //view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
-
-																
-
-	
-	
-
+						
 	
 
 	glEnable(GL_DEPTH_TEST); // включаем буфер глубины чтобы передние и задние обьекты не перезаписывали друг друга
-	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); //настройка, не колбек. Говорит GLFW спрятать и заблокировать курсор.
+	glfwSetCursorPosCallback(window, mouse_callback); // регистрация функций-обработчиков. Вы говорите GLFW: "когда мышь
+	glfwSetScrollCallback(window, scroll_callback);	  // двигается — вызови вот эту функцию". Регистрируется тоже один раз.
+	
 
-	while (!glfwWindowShouldClose(window)) {
-
-		processInput(window);	
-		glfwSetCursorPosCallback(window, mouse_callback);
-		glfwSetScrollCallback(window, scroll_callback);
+	while (!glfwWindowShouldClose(window)) {	
 
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-		//glClear(GL_COLOR_BUFFER_BIT);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // очищаем буферы глубины и цвета, иначе предыдущая информация от предыдщего кадра останется в буфере
 		/*
 		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); //режим рисования каркаса если надо, а это чтобы вернуть в исходный режим рисования - glPolygonMode(GL_FRONT_AND_BACK, GL_FILL).
@@ -407,10 +323,11 @@ int main() {
 
 		shader.UseShaderProgram();
 
-		view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+		camera.processInput(window);
+		view = camera.GetViewMatrix();
 		shader.SetUniformMatrix4fv("view", 1, view);
 
-		projection = glm::perspective(glm::radians(zoom), 800.0f / 600.0f, 0.1f, 100.0f);
+		projection = glm::perspective(glm::radians(camera.zoom), 800.0f / 600.0f, 0.1f, 100.0f);
 		shader.SetUniformMatrix4fv("projection", 1, projection);
 
 		glActiveTexture(GL_TEXTURE0);
@@ -419,8 +336,7 @@ int main() {
 		glBindTexture(GL_TEXTURE_2D, texture2);
 
 		glBindVertexArray(VAO); //связывание с VAO автоматически связываает EBO, всегда отвязываем EBO  после отвязки VAO
-		//glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);  //отрисовка 
-		//glDrawArrays(GL_TRIANGLES, 0, 36); //этот метод используется для отрисовки когда у нас только массив вершин и нет массива индексов
+		
 
 		for (int i = 0; i < sizeof(cubePositions) / sizeof(glm::vec3); ++i) {
 
@@ -432,7 +348,7 @@ int main() {
 
 			shader.SetUniformMatrix4fv("model", 1, model);
 
-			glDrawArrays(GL_TRIANGLES, 0, 36);
+			glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);// 36 - количесвто индексов
 		}
 
 		glfwSwapBuffers(window);
