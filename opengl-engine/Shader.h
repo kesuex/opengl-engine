@@ -17,7 +17,9 @@ public:
 	void IsCompileFragmentShaderSuccessfully(unsigned int fragmentShader);
 	void IsLinkingShaderProgramSuccessfully(unsigned int shaderProgram);
 	void UseShaderProgram();
-	void SetUniformVec4(const std::string& name, float x, float y, float z, float w) const;
+	void SetUniformVec4fv(const std::string& name, int сount, glm::vec4 vec4) const;
+	void SetUniformVec3fv(const std::string& name, int сount, glm::vec3 vec3) const;
+	void SetUniformMatrix4fv(const std::string& name, int сount, glm::mat4 mat4) const;
 	void SetUniformInt(const std::string& name, int value) const;
-	void SetUniformMatrix4fv(const std::string& name, int matrixCount, glm::mat4 matrix) const;
+	
 };

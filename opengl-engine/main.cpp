@@ -52,7 +52,57 @@ y и z каждой вершины должны находиться в диап
 
 //glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);  //отрисовка с помощью массива индексов
 //glDrawArrays(GL_TRIANGLES, 0, 36); //этот метод используется для отрисовки когда у нас только массив вершин и нет массива индексов
+glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); //режим рисования каркаса если надо, а это чтобы вернуть в исходный режим рисования - glPolygonMode(GL_FRONT_AND_BACK, GL_FILL).
+
+ OpenGL всегда работает с двумя буферами:
+
+  Front Buffer → то что видит пользователь на экране
+  Back Buffer  → то куда ты сейчас рисуешь
+
+  Пока пользователь смотрит на front buffer — ты последовательно рисуешь всё в back buffer. Пользователь видит только результат 
+  swapBuffers в конце цикла рендеринга — в этот момент в буфере уже всё нарисовано. Промежуточных состояний он не видит никогда.
+  Все обьекты последовательно рисуются, одновременно показывается.
+
+   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+  //                     ↑  ↑     ↑         ↑              ↑               ↑
+  //                     1  2     3         4              5               6
+
+  1 — index (0)
+  Номер атрибута. В шейдере: layout (location = 0) in vec3 aPos; — должен совпадать.
+
+  2 — size (3)
+  Сколько компонентов у атрибута. Позиция = xyz = 3. UV = 2. Цвет = 3.
+
+  3 — type (GL_FLOAT)
+  Тип данных одного компонента.
+
+  4 — normalized (GL_FALSE)
+  Нужно ли нормализовать целочисленные значения в диапазон 0..1. Для float всегда GL_FALSE.
+
+  5 — stride (8 * sizeof(float))
+  Сколько байт от начала одной вершины до начала следующей. У тебя каждая вершина: 3 позиция + 3 цвет + 2 UV = 8 floats.
+
+  6 — offset ((void*)0)
+  С какого байта внутри вершины начинается этот атрибут:
+  позиция: (void*)0                    ← с самого начала
+  цвет:    (void*)(3 * sizeof(float))  ← после 3 floats позиции
+  UV:      (void*)(6 * sizeof(float))  ← после 3+3 floats
+
+glEnableVertexAttribArray(0);
+Смысл в том что иногда нужно временно отключить атрибут не удаляя его настройки из VAO. Например лампочке не нужны
+нормали — можно отключить этот атрибут не трогая конфигурацию.
+
+VBO — VAO запоминает не сам VBO, а настройку glVertexAttribPointer.После того как настройка записана, VBO можно
+отвязать — VAO уже знает что нужно.
+
+EBO — VAO запоминает саму привязку GL_ELEMENT_ARRAY_BUFFER напрямую.Если отвязать EBO пока VAO активен — VAO потеряет
+ссылку на него и glDrawElements сломается.
+
+Кратко: VBO хранится через атрибут, EBO хранится напрямую в VAO.
+
+
 */
+
 
 Camera camera;
 
@@ -70,27 +120,20 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
 }
 
 
-
 unsigned int scrWIDTH = 800;
 unsigned int scrHEIGHT = 600;
 
 
 glm::mat4 projection;
 glm::mat4 view;
-/*
-VBO — VAO запоминает не сам VBO, а настройку glVertexAttribPointer.После того как настройка записана, VBO можно
-отвязать — VAO уже знает что нужно.
 
-EBO — VAO запоминает саму привязку GL_ELEMENT_ARRAY_BUFFER напрямую.Если отвязать EBO пока VAO активен — VAO потеряет
-ссылку на него и glDrawElements сломается.
 
-Кратко: VBO хранится через атрибут, EBO хранится напрямую в VAO.
-*/
-unsigned int VBO;	//храналище вершин
-unsigned int EBO;  //позволяет переиспользовать вершины из VBO, указывая на них по индексу.							
-unsigned int VAO; //контейнер/конфигурация, который запоминает: -какой VBO привязан
-															 // -какой EBO привязан
-															// - как интерпретировать данные(glVertexAttribPointer
+unsigned int VBO;	
+unsigned int EBO; 						
+unsigned int VAO; 
+
+unsigned int lightVAO;
+
 
 
 //данные о позиции и цвете вершин и координаты текстур
@@ -132,6 +175,7 @@ float vertices[] = {
 	 -0.5f,  0.5f, -0.5f,  1.0f, 1.0f, 1.0f,  0.0f, 1.0f,  // 23
 };
 
+
 unsigned int indices[] = {
   0, 1, 2,     2, 3, 0,
   4, 5, 6,     6, 7, 4,
@@ -143,28 +187,16 @@ unsigned int indices[] = {
 
 
 
-glm::vec3 cubePositions[] = {
-	glm::vec3(0.0f,  0.0f,   0.0f),
-	glm::vec3(2.0f,  5.0f, -15.0f),
-	glm::vec3(-1.5f, -2.2f,  -2.5f),
-	glm::vec3(-3.8f, -2.0f, -12.3f),
-	glm::vec3(2.4f, -0.4f,  -3.5f),
-	glm::vec3(-1.7f,  3.0f,  -7.5f),
-	glm::vec3(1.3f, -2.0f,  -2.5f),
-	glm::vec3(1.5f,  2.0f,  -2.5f),
-	glm::vec3(1.5f,  0.2f,  -1.5f),
-	glm::vec3(-1.3f,  1.0f,  -1.5f)
-};
-
-
-
-
-
-
 int texWidth, texHeight, texnrChannels;
 unsigned int texture1;
 unsigned int texture2;
 unsigned char* texData;
+
+
+
+glm::vec3 lightColor = glm::vec3(1.0f, 1.0f, 1.0f);
+glm::vec3 objectColor = glm::vec3(1.0f, 0.5f, 0.31f);
+
 
 
 
@@ -191,9 +223,22 @@ int main() {
 		return -1;
 	}
 
-
 	//Создаем шейдерную программу
-	Shader shader("shaders/vertex.glsl", "shaders/fragment.glsl");
+	Shader objShader("shaders/cube_vs.glsl", "shaders/cube_fs.glsl");
+	objShader.UseShaderProgram();
+	objShader.SetUniformVec3fv("lightColor", 1, lightColor);
+	objShader.SetUniformVec3fv("objectColor", 1, objectColor);
+	glm::mat4 model = glm::mat4(1.0f); //инициализация единичной матрицы
+	model = glm::translate(model, glm::vec3(0.0f, 0.0f, -3.0f));
+	objShader.SetUniformMatrix4fv("model", 1, model);
+
+	Shader lightShader("shaders/cube_vs.glsl", "shaders/light_fs.glsl");
+	lightShader.UseShaderProgram();
+	glm::mat4 lightModel = glm::mat4(1.0f);
+	lightShader.SetUniformVec3fv("lightColor", 1, lightColor);
+	lightModel = glm::translate(lightModel, glm::vec3(-5.0f, 0.0f, -3.0f));
+	lightShader.SetUniformMatrix4fv("model", 1, lightModel);
+	
 
 	stbi_set_flip_vertically_on_load(true);
 	texData = stbi_load("textures/container.jpg", &texWidth, &texHeight, &texnrChannels, 0);
@@ -254,38 +299,52 @@ int main() {
 		std::cout << " Cant load a texture";
 	}
 	stbi_image_free(texData); //освобождаем память
+	
+	//objShader.SetUniformInt("texture1", 0); //отправляем текстуры в фрагментный шейдер
+	//objShader.SetUniformInt("texture2", 1);
 
 
 
+	//Создание объекта буфера  VAO, VBO, EBO в видеопамяти
+	glGenVertexArrays(1, &VAO); //генерируем уникальный идентификатор конфигурации атрибутов VAO и создаем этот обьект
+	glGenBuffers(1, &VBO); //генерируем уникальный идентификатор буфера-обьекта вершин VBO и создаем этот обьект
+	glGenBuffers(1, &EBO); // генерируем уникальный идентификатор буфера-обьекта индексов EBO и создаем этот обьект
 
-
-	//Создание оббекта буфера данных VBO, обьекта буфера элементов EBO и обьекта массива вершин VAO в видеопамяти
-	glGenVertexArrays(1, &VAO);
-	glGenBuffers(1, &VBO); //генерируем уникальный идентификатор буфера-обьекта вершин Опенгл и создаем этот обьект
-	glGenBuffers(1, &EBO); // генерируем уникальный идентификатор буфера-обьекта индексов Опенгл и создаем этот обьект
-	glBindVertexArray(VAO);
-
+	//Активациия VAO и связывание буферов VBO, EBO
+	glBindVertexArray(VAO); // активируем обьект VAO для дальнейшей настройки
 	glBindBuffer(GL_ARRAY_BUFFER, VBO); // связываем созданныё буфферный обьект с типом буфера вершин - GL_ARRAY_BUFFER
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO); // связываем созданныё буфферный обьект с типом буфера вершин - GL_ARRAY_BUFFER
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO); // связываем созданныё буфферный обьект с типом буфера индексов - GL_ELEMENT_ARRAY_BUFFER, запись в VAO
 
+	//Копирование данных в GPU память
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW); // копируем данные вершин из массива оперативной памяти в буфер видеопамяти видеокарты
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);// копируем данные индексов из массива оперативной памяти в буфер видеопамяти видеокарты
-
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);// устанавливаем указатели атрибутов вершин, чтобы сказать опенгл как он должен интерпритировать данные вершины
+	
+	//Записываем конфигурацию атрибута GL_ARRAY_BUFFER (к которому привязан текущий VBO) в активный VAO, после этого можно отвязать VBO - glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);// устанавливаем указатели атрибутов вершин
 	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));// устанавливаем указатели атрибутов цвета
 	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));// устанавливаем указатели атрибутов тексур
 	
+	//Включаем атрибуты
 	glEnableVertexAttribArray(0);// включаем атрибут вершины
 	glEnableVertexAttribArray(1);// включаем атрибут цвета
-	glEnableVertexAttribArray(2);// включаем атрибут текстур
+	//glEnableVertexAttribArray(2);// включаем атрибут текстур
+	
+	//Деактивация VAO куба
+	glBindVertexArray(0);
 
-	//отвязываем буферы кроме EBO иначе VAO потеряет доступ к нему
+	//Создание буфера отрисовки для светового обьекта используя той же формы куба
+	glGenVertexArrays(1, &lightVAO);
+	glBindVertexArray(lightVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);// устанавливаем указатели атрибутов вершин
+	glEnableVertexAttribArray(0);// включаем атрибут вершины
+	
+	//Деактивация VAO светового куба и отвязывание общего буфера VBO. EBO отвязывать не нужно. Если отвязывать то только после деактивации VAO, иначе VAO потеряет доступ к нему
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 
-	shader.UseShaderProgram();
-	shader.SetUniformInt("texture1", 0); //отправляем текстуры в фрагментный шейдер
-	shader.SetUniformInt("texture2", 1);
+	
 	/*
 	glm::mat4 trans = glm::mat4(1.0f); //инициализация единичной матрицы
 	trans = glm::translate(trans, glm::vec3(0.5f, -0.5f, 0.0f));
@@ -293,11 +352,10 @@ int main() {
 	trans = glm::scale(trans, glm::vec3(0.5, 0.5, 0.5)); //1 шаг - создание матрицы преобразования где мы передаем единичную матрицу и вектор масштабирования
 	glm::mat4 savedTrans = trans;
 	shader.SetUniformMatrix4fv("transform", 1, trans); //отправляем матрицу в вершинны шейдер
+	 // перемещаем сцену в обратном направлении //view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
 	*/
 
-    // перемещаем сцену в обратном направлении //view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
-						
-	
+  				
 
 	glEnable(GL_DEPTH_TEST); // включаем буфер глубины чтобы передние и задние обьекты не перезаписывали друг друга
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); //настройка, не колбек. Говорит GLFW спрятать и заблокировать курсор.
@@ -307,28 +365,17 @@ int main() {
 
 	while (!glfwWindowShouldClose(window)) {	
 
-		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+		//glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // очищаем буферы глубины и цвета, иначе предыдущая информация от предыдщего кадра останется в буфере
-		/*
-		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); //режим рисования каркаса если надо, а это чтобы вернуть в исходный режим рисования - glPolygonMode(GL_FRONT_AND_BACK, GL_FILL).
-		//эксперементируем с постоянным вращением 
-		glm::mat4 savedTrans = trans;
-		savedTrans = glm::rotate(savedTrans, (float)glfwGetTime(), glm::vec3(0.0f, 0.0f, 1.0f));
-		shader.SetUniformMatrix4fv("transform", 1, savedTrans); //отправляем матрицу в вершинны шейдер
-		//Uniform значения
-		float timeValue = glfwGetTime();
-		float greenValue = (sin(timeValue) / 2.0f) + 0.5f;
-		shader.SetUniformVec4("ourColor", 0.0f, greenValue, 0.0f, 1.0f);
-		*/
-
-		shader.UseShaderProgram();
-
+		
 		camera.processInput(window);
-		view = camera.GetViewMatrix();
-		shader.SetUniformMatrix4fv("view", 1, view);
 
+		view = camera.GetViewMatrix();
 		projection = glm::perspective(glm::radians(camera.zoom), 800.0f / 600.0f, 0.1f, 100.0f);
-		shader.SetUniformMatrix4fv("projection", 1, projection);
+
+		objShader.UseShaderProgram();
+		objShader.SetUniformMatrix4fv("view", 1, view);
+		objShader.SetUniformMatrix4fv("projection", 1, projection);
 
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, texture1);
@@ -336,20 +383,15 @@ int main() {
 		glBindTexture(GL_TEXTURE_2D, texture2);
 
 		glBindVertexArray(VAO); //связывание с VAO автоматически связываает EBO, всегда отвязываем EBO  после отвязки VAO
-		
+		glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);// 36 - количесвто индексов
+		glBindVertexArray(0);
 
-		for (int i = 0; i < sizeof(cubePositions) / sizeof(glm::vec3); ++i) {
+		lightShader.UseShaderProgram();
+		lightShader.SetUniformMatrix4fv("view", 1, view);
+		lightShader.SetUniformMatrix4fv("projection", 1, projection);
 
-			float angle = 20.0f * i;
-
-			glm::mat4 model = glm::mat4(1.0f);
-			model = glm::translate(model, cubePositions[i]);
-			model = glm::rotate(model, (float)glfwGetTime() * glm::radians(angle), glm::vec3(0.5f, 1.0f, 0.0f));
-
-			shader.SetUniformMatrix4fv("model", 1, model);
-
-			glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);// 36 - количесвто индексов
-		}
+		glBindVertexArray(lightVAO); //связывание с VAO автоматически связываает EBO, всегда отвязываем EBO  после отвязки VAO
+		glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);// 36 - количесвто индексов
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();

@@ -106,10 +106,22 @@ void Shader::UseShaderProgram() {
 }
 
 
-void Shader::SetUniformVec4(const std::string& name, float x, float y, float z, float w) const {
+void Shader::SetUniformVec4fv(const std::string& name, int сount, glm::vec4 vec4) const {
 
-	glUniform4f(glGetUniformLocation(shaderProgram, name.c_str()), x, y, z, w);
+	glUniform4fv(glGetUniformLocation(shaderProgram, name.c_str()), сount, glm::value_ptr(vec4));
 }
+
+
+void Shader::SetUniformVec3fv(const std::string& name, int сount, glm::vec3 vec3) const {
+
+	glUniform3fv(glGetUniformLocation(shaderProgram, name.c_str()), сount, glm::value_ptr(vec3));
+}
+
+
+void Shader::SetUniformMatrix4fv(const std::string& name, int сount, glm::mat4 mat4) const {
+
+	glUniformMatrix4fv(glGetUniformLocation(shaderProgram, name.c_str()), сount, GL_FALSE, glm::value_ptr(mat4));
+};
 
 
 void Shader::SetUniformInt(const std::string& name, int value) const {
@@ -118,7 +130,4 @@ void Shader::SetUniformInt(const std::string& name, int value) const {
 }
 
 
-void Shader::SetUniformMatrix4fv(const std::string& name, int matrixCount, glm::mat4 matrix) const {
 
-	glUniformMatrix4fv(glGetUniformLocation(shaderProgram, name.c_str()), matrixCount, GL_FALSE, glm::value_ptr(matrix));
-};
