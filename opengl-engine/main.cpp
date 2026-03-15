@@ -203,8 +203,8 @@ unsigned int indices[] = {
 
 
 int texWidth, texHeight, texnrChannels;
-unsigned int texture1;
-unsigned int texture2;
+unsigned int diffuseMap;
+unsigned int specularMap;
 unsigned char* texData;
 
 
@@ -247,9 +247,11 @@ int main() {
 	objShader.SetUniformVec3fv("light.diffuse", 1, glm::vec3(0.5f, 0.5f, 0.5f));
 	objShader.SetUniformVec3fv("light.specular", 1, glm::vec3(1.0f, 1.0f, 1.0f));
 	
-	objShader.SetUniformVec3fv("material.ambient", 1, glm::vec3(1.0f, 0.5f, 0.31f));
-	objShader.SetUniformVec3fv("material.diffuse", 1, glm::vec3(1.0f, 0.5f, 0.31f));
-	objShader.SetUniformVec3fv("material.specular", 1, glm::vec3(0.5f, 0.5f, 0.5f));
+	//objShader.SetUniformVec3fv("material.ambient", 1, glm::vec3(1.0f, 0.5f, 0.31f));
+	//objShader.SetUniformVec3fv("material.diffuse", 1, glm::vec3(1.0f, 0.5f, 0.31f));
+	//objShader.SetUniformVec3fv("material.specular", 1, glm::vec3(0.5f, 0.5f, 0.5f));
+	objShader.SetUniformInt("material.diffuse", 0);
+	objShader.SetUniformInt("material.specular", 1); //отправляем текстуры в фрагментный шейдер
 	objShader.SetUniformFloat("material.shininess", 32.0f);
 
 	glm::mat4 model = glm::mat4(1.0f); //инициализация единичной матрицы
@@ -266,16 +268,6 @@ int main() {
 	
 
 	stbi_set_flip_vertically_on_load(true);
-	texData = stbi_load("textures/container.jpg", &texWidth, &texHeight, &texnrChannels, 0);
-	//Создаем текстуру
-	glGenTextures(1, &texture1); // функция принимает количество текстур и сохраняет в переменной texture
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, texture1);//привязка обьекта к типу
-
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	/*
 	Первый аргумент указывает цель текстуры; установка значения GL_TEXTURE_2D означает, что эта
 	операция сгенерирует текстуру на текущем связанном объекте текстуры с той же целью (поэтому любые
@@ -291,32 +283,43 @@ int main() {
 	значениями RGB и сохранили их в виде символов (байт), поэтому передадим соответствующие значения.
 	• Последний аргумент — это фактические данные изображения.
 	*/
-	
-	if (texData) {
 
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, texWidth, texHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, texData); //привязка связанного обьекта текстуры к изображению 
-		glGenerateMipmap(GL_TEXTURE_2D);
-	}
-	else {
-		std::cout<<" Cant load a texture";
-	}
-	stbi_image_free(texData); //освобождаем память
-
-
-
-	texData = stbi_load("textures/awesomeface.png", &texWidth, &texHeight, &texnrChannels, 0);
+	texData = stbi_load("textures/container2.png", &texWidth, &texHeight, &texnrChannels, 0);
 	//Создаем текстуру
-	glGenTextures(1, &texture2); // функция принимает количество текстур и сохраняет в переменной texture
-	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, texture2);//привязка обьекта к типу
+	glGenTextures(1, &diffuseMap); // функция принимает количество текстур и сохраняет в переменной texture
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, diffuseMap);//привязка обьекта к типу
 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	
-	if (texData) {
 
+	if (texData) {
+		//GL_RGBA или GL_RGB  - параметр влияющий на формат пнг или джейпег 
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, texWidth, texHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, texData); //привязка связанного обьекта текстуры к изображению 
+		glGenerateMipmap(GL_TEXTURE_2D);
+	}
+	else {
+		std::cout << " Cant load a texture";
+	}
+	stbi_image_free(texData); //освобождаем память
+
+	//------------------------------------------------------------------
+
+	texData = stbi_load("textures/container2_specular.png", &texWidth, &texHeight, &texnrChannels, 0);
+	//Создаем текстуру
+	glGenTextures(1, &specularMap); // функция принимает количество текстур и сохраняет в переменной texture
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, specularMap);//привязка обьекта к типу
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	if (texData) {
+		//GL_RGBA или GL_RGB  - параметр влияющий на формат пнг или джейпег
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, texWidth, texHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, texData); //привязка связанного обьекта текстуры к изображению 
 		glGenerateMipmap(GL_TEXTURE_2D);
 	}
@@ -325,10 +328,7 @@ int main() {
 	}
 	stbi_image_free(texData); //освобождаем память
 	
-	//objShader.SetUniformInt("texture1", 0); //отправляем текстуры в фрагментный шейдер
-	//objShader.SetUniformInt("texture2", 1);
-
-
+	
 
 	//Создание объекта буфера  VAO, VBO, EBO в видеопамяти
 	glGenVertexArrays(1, &VAO); //генерируем уникальный идентификатор конфигурации атрибутов VAO и создаем этот обьект
@@ -352,7 +352,7 @@ int main() {
 	//Включаем атрибуты
 	glEnableVertexAttribArray(0);// включаем атрибут вершины
 	glEnableVertexAttribArray(1);// включаем атрибут цвета
-	//glEnableVertexAttribArray(2);// включаем атрибут текстур
+	glEnableVertexAttribArray(2);// включаем атрибут текстур
 	
 	//Деактивация VAO куба
 	glBindVertexArray(0);
@@ -404,9 +404,9 @@ int main() {
 		objShader.SetUniformVec3fv("viewPos", 1, camera.cameraPosition);
 		
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, texture1);
+		glBindTexture(GL_TEXTURE_2D, diffuseMap);
 		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, texture2);
+		glBindTexture(GL_TEXTURE_2D, specularMap);
 
 		glBindVertexArray(VAO); //связывание с VAO автоматически связываает EBO, всегда отвязываем EBO  после отвязки VAO
 		glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);// 36 - количесвто индексов
