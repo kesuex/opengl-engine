@@ -21,5 +21,5 @@ public:
 	void SetUniformVec3fv(const std::string& name, int сount, glm::vec3 vec3) const;
 	void SetUniformMatrix4fv(const std::string& name, int сount, glm::mat4 mat4) const;
 	void SetUniformInt(const std::string& name, int value) const;
-	
+	void SetUniformFloat(const std::string& name, float value) const;
 };

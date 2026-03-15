@@ -17,8 +17,8 @@ uniform mat4 projection;
 void main(){
 
   gl_Position = projection * view * model * vec4(aPos.x, aPos.y, aPos.z, 1.0);  //vertexColor = vec4(0.5, 0.0, 0.0, 1.0); - ранний пример передачи vertexColor в фрагментный шейдер
-  Normal = mat3(transpose(inverse(model))) * aNormal;						    // gl_Position = transform * vec4(aPos.x, aPos.y, aPos.z, 1.0); - ранний пример перемещения обьекта в сцене
-  FragPos = vec3(model * vec4(aPos, 1.0));
+  Normal = mat3(transpose(inverse(model))) * aNormal;	//расчет нормали таким образом чтобы масштабирование обьекта не изменило угол нормали					    // gl_Position = transform * vec4(aPos.x, aPos.y, aPos.z, 1.0); - ранний пример перемещения обьекта в сцене
+  FragPos = vec3(model * vec4(aPos, 1.0)); //расчте позиции вершины для какждой вершины и перевод их координат в мировое простратнстов
   TexCoord = aTexCoord;
 
 } 

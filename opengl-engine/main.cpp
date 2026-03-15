@@ -242,13 +242,20 @@ int main() {
 	//Создаем шейдерную программу
 	Shader objShader("shaders/cube_vs.glsl", "shaders/cube_fs.glsl");
 	objShader.UseShaderProgram();
-	objShader.SetUniformVec3fv("lightColor", 1, lightColor);
-	objShader.SetUniformVec3fv("objectColor", 1, objectColor);
-	objShader.SetUniformVec3fv("lightPos", 1, lightPos);
-	objShader.SetUniformVec3fv("viewPos", 1, camera.cameraPosition);
+	objShader.SetUniformVec3fv("light.position", 1, lightPos);
+	objShader.SetUniformVec3fv("light.ambient", 1, glm::vec3(0.2f, 0.2f, 0.2f));
+	objShader.SetUniformVec3fv("light.diffuse", 1, glm::vec3(0.5f, 0.5f, 0.5f));
+	objShader.SetUniformVec3fv("light.specular", 1, glm::vec3(1.0f, 1.0f, 1.0f));
+	
+	objShader.SetUniformVec3fv("material.ambient", 1, glm::vec3(1.0f, 0.5f, 0.31f));
+	objShader.SetUniformVec3fv("material.diffuse", 1, glm::vec3(1.0f, 0.5f, 0.31f));
+	objShader.SetUniformVec3fv("material.specular", 1, glm::vec3(0.5f, 0.5f, 0.5f));
+	objShader.SetUniformFloat("material.shininess", 32.0f);
+
 	glm::mat4 model = glm::mat4(1.0f); //инициализация единичной матрицы
 	model = glm::translate(model, objPos);
 	objShader.SetUniformMatrix4fv("model", 1, model);
+
 
 	Shader lightShader("shaders/cube_vs.glsl", "shaders/light_fs.glsl");
 	lightShader.UseShaderProgram();
@@ -395,7 +402,7 @@ int main() {
 		objShader.SetUniformMatrix4fv("view", 1, view);
 		objShader.SetUniformMatrix4fv("projection", 1, projection);
 		objShader.SetUniformVec3fv("viewPos", 1, camera.cameraPosition);
-
+		
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, texture1);
 		glActiveTexture(GL_TEXTURE1);
