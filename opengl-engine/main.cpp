@@ -266,7 +266,12 @@ int main() {
 	objShader.SetUniformVec3fv("directlight.diffuse", 1, glm::vec3(0.5f, 0.5f, 0.5f));
 	objShader.SetUniformVec3fv("directlight.specular", 1, glm::vec3(1.0f, 1.0f, 1.0f));
 
-	
+	objShader.SetUniformVec3fv("spotlight.ambient", 1, glm::vec3(0.2f, 0.2f, 0.2f));
+	objShader.SetUniformVec3fv("spotlight.diffuse", 1, glm::vec3(0.5f, 0.5f, 0.5f));
+	objShader.SetUniformVec3fv("spotlight.specular", 1, glm::vec3(1.0f, 1.0f, 1.0f));
+	objShader.SetUniformFloat("spotlight.constant", 1.0f);
+	objShader.SetUniformFloat("spotlight.linear", 0.09f);
+	objShader.SetUniformFloat("spotlight.quadratic", 0.032f);
 
 	//objShader.SetUniformVec3fv("material.ambient", 1, glm::vec3(1.0f, 0.5f, 0.31f));
 	//objShader.SetUniformVec3fv("material.diffuse", 1, glm::vec3(1.0f, 0.5f, 0.31f));
@@ -427,12 +432,7 @@ int main() {
 		objShader.SetUniformVec3fv("spotlight.direction", 1, camera.cameraFront);
 		objShader.SetUniformFloat("spotlight.cutOff", glm::cos(glm::radians(12.5f)));
 		objShader.SetUniformFloat("spotlight.outerCutOff", glm::cos(glm::radians(17.5f)));
-		objShader.SetUniformVec3fv("spotlight.ambient", 1, glm::vec3(0.2f, 0.2f, 0.2f));
-		objShader.SetUniformVec3fv("spotlight.diffuse", 1, glm::vec3(0.5f, 0.5f, 0.5f));
-		objShader.SetUniformVec3fv("spotlight.specular", 1, glm::vec3(1.0f, 1.0f, 1.0f));
-		objShader.SetUniformFloat("spotlight.constant", 1.0f);
-		objShader.SetUniformFloat("spotlight.linear", 0.09f);
-		objShader.SetUniformFloat("spotlight.quadratic", 0.032f);
+		
 
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, diffuseMap);
