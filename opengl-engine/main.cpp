@@ -214,7 +214,18 @@ glm::vec3 objectColor(1.0f, 0.5f, 0.31f);
 glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
 glm::vec3 objPos(0.0f, 0.0f, -3.0f);
 
-
+glm::vec3 cubePositions[] = {
+	glm::vec3(0.0f,  0.0f,   0.0f),
+	glm::vec3(2.0f,  5.0f, -15.0f),
+	glm::vec3(-1.5f, -2.2f,  -2.5f),
+	glm::vec3(-3.8f, -2.0f, -12.3f),
+	glm::vec3(2.4f, -0.4f,  -3.5f),
+	glm::vec3(-1.7f,  3.0f,  -7.5f),
+	glm::vec3(1.3f, -2.0f,  -2.5f),
+	glm::vec3(1.5f,  2.0f,  -2.5f),
+	glm::vec3(1.5f,  0.2f,  -1.5f),
+	glm::vec3(-1.3f,  1.0f,  -1.5f)
+};
 
 int main() {
 
@@ -242,11 +253,21 @@ int main() {
 	//Создаем шейдерную программу
 	Shader objShader("shaders/cube_vs.glsl", "shaders/cube_fs.glsl");
 	objShader.UseShaderProgram();
-	objShader.SetUniformVec3fv("light.position", 1, lightPos);
-	objShader.SetUniformVec3fv("light.ambient", 1, glm::vec3(0.2f, 0.2f, 0.2f));
-	objShader.SetUniformVec3fv("light.diffuse", 1, glm::vec3(0.5f, 0.5f, 0.5f));
-	objShader.SetUniformVec3fv("light.specular", 1, glm::vec3(1.0f, 1.0f, 1.0f));
+	objShader.SetUniformVec3fv("pointlight.position", 1, lightPos);
+	objShader.SetUniformVec3fv("pointlight.ambient", 1, glm::vec3(0.2f, 0.2f, 0.2f));
+	objShader.SetUniformVec3fv("pointlight.diffuse", 1, glm::vec3(0.5f, 0.5f, 0.5f));
+	objShader.SetUniformVec3fv("pointlight.specular", 1, glm::vec3(1.0f, 1.0f, 1.0f));
+	objShader.SetUniformFloat("pointlight.constant", 1.0f);
+	objShader.SetUniformFloat("pointlight.linear", 0.09f);
+	objShader.SetUniformFloat("pointlight.quadratic", 0.032f);
+
+	objShader.SetUniformVec3fv("directlight.direction", 1, glm::vec3(-0.2f, -1.0f, -0.3f));
+	objShader.SetUniformVec3fv("directlight.ambient", 1, glm::vec3(0.05f, 0.05f, 0.05f));
+	objShader.SetUniformVec3fv("directlight.diffuse", 1, glm::vec3(0.5f, 0.5f, 0.5f));
+	objShader.SetUniformVec3fv("directlight.specular", 1, glm::vec3(1.0f, 1.0f, 1.0f));
+
 	
+
 	//objShader.SetUniformVec3fv("material.ambient", 1, glm::vec3(1.0f, 0.5f, 0.31f));
 	//objShader.SetUniformVec3fv("material.diffuse", 1, glm::vec3(1.0f, 0.5f, 0.31f));
 	//objShader.SetUniformVec3fv("material.specular", 1, glm::vec3(0.5f, 0.5f, 0.5f));
@@ -390,7 +411,7 @@ int main() {
 
 	while (!glfwWindowShouldClose(window)) {	
 
-		//glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+		glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // очищаем буферы глубины и цвета, иначе предыдущая информация от предыдщего кадра останется в буфере
 		
 		camera.processInput(window);
@@ -402,15 +423,39 @@ int main() {
 		objShader.SetUniformMatrix4fv("view", 1, view);
 		objShader.SetUniformMatrix4fv("projection", 1, projection);
 		objShader.SetUniformVec3fv("viewPos", 1, camera.cameraPosition);
-		
+		objShader.SetUniformVec3fv("spotlight.position", 1, camera.cameraPosition);
+		objShader.SetUniformVec3fv("spotlight.direction", 1, camera.cameraFront);
+		objShader.SetUniformFloat("spotlight.cutOff", glm::cos(glm::radians(12.5f)));
+		objShader.SetUniformFloat("spotlight.outerCutOff", glm::cos(glm::radians(17.5f)));
+		objShader.SetUniformVec3fv("spotlight.ambient", 1, glm::vec3(0.2f, 0.2f, 0.2f));
+		objShader.SetUniformVec3fv("spotlight.diffuse", 1, glm::vec3(0.5f, 0.5f, 0.5f));
+		objShader.SetUniformVec3fv("spotlight.specular", 1, glm::vec3(1.0f, 1.0f, 1.0f));
+		objShader.SetUniformFloat("spotlight.constant", 1.0f);
+		objShader.SetUniformFloat("spotlight.linear", 0.09f);
+		objShader.SetUniformFloat("spotlight.quadratic", 0.032f);
+
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, diffuseMap);
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, specularMap);
 
-		glBindVertexArray(VAO); //связывание с VAO автоматически связываает EBO, всегда отвязываем EBO  после отвязки VAO
-		glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);// 36 - количесвто индексов
-		glBindVertexArray(0);
+		glBindVertexArray(VAO);
+		for (int i = 0; i < sizeof(cubePositions) / sizeof(glm::vec3); ++i) {
+
+			float angle = 20.0f * i;
+
+			glm::mat4 model = glm::mat4(1.0f);
+			model = glm::translate(model, cubePositions[i]);
+			model = glm::rotate(model, (float)glfwGetTime() * glm::radians(angle), glm::vec3(0.5f, 1.0f, 0.0f));
+
+			objShader.SetUniformMatrix4fv("model", 1, model);
+
+			glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+		}
+
+		//glBindVertexArray(VAO); //связывание с VAO автоматически связываает EBO, всегда отвязываем EBO  после отвязки VAO
+		//glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);// 36 - количесвто индексов
+		//glBindVertexArray(0);
 
 		lightShader.UseShaderProgram();
 		lightShader.SetUniformMatrix4fv("view", 1, view);
