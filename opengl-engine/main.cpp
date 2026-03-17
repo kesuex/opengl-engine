@@ -227,6 +227,22 @@ glm::vec3 cubePositions[] = {
 	glm::vec3(-1.3f,  1.0f,  -1.5f)
 };
 
+glm::vec3 pointLightPositions[] = {
+	glm::vec3(0.7f, 0.2f, 2.0f),
+	glm::vec3(2.3f, -3.3f, -4.0f),
+	glm::vec3(-4.0f, 2.0f, -12.0f),
+	glm::vec3(0.0f, 0.0f, -3.0f)
+};
+
+glm::mat4 lightModels[] = {
+   glm::mat4(1.0f),
+   glm::mat4(1.0f),
+   glm::mat4(1.0f),
+   glm::mat4(1.0f)
+};
+
+
+
 int main() {
 
 	glfwInit();
@@ -253,13 +269,20 @@ int main() {
 	//Создаем шейдерную программу
 	Shader objShader("shaders/cube_vs.glsl", "shaders/cube_fs.glsl");
 	objShader.UseShaderProgram();
-	objShader.SetUniformVec3fv("pointlight.position", 1, lightPos);
-	objShader.SetUniformVec3fv("pointlight.ambient", 1, glm::vec3(0.2f, 0.2f, 0.2f));
-	objShader.SetUniformVec3fv("pointlight.diffuse", 1, glm::vec3(0.5f, 0.5f, 0.5f));
-	objShader.SetUniformVec3fv("pointlight.specular", 1, glm::vec3(1.0f, 1.0f, 1.0f));
-	objShader.SetUniformFloat("pointlight.constant", 1.0f);
-	objShader.SetUniformFloat("pointlight.linear", 0.09f);
-	objShader.SetUniformFloat("pointlight.quadratic", 0.032f);
+
+	for (int i = 0; i < sizeof(pointLightPositions) / sizeof(glm::vec3); ++i) {
+
+		std::string base = "pointlights[" + std::to_string(i) + "].";
+		objShader.SetUniformVec3fv((base + "position").c_str(), 1, pointLightPositions[i]);
+		objShader.SetUniformVec3fv((base + "ambient").c_str(), 1, glm::vec3(0.2f, 0.2f, 0.2f));
+		objShader.SetUniformVec3fv((base + "diffuse").c_str(), 1, glm::vec3(0.5f, 0.5f, 0.5f));
+		objShader.SetUniformVec3fv((base + "specular").c_str(), 1, glm::vec3(1.0f, 1.0f, 1.0f));
+		objShader.SetUniformFloat((base + "constant").c_str(), 1.0f);
+		objShader.SetUniformFloat((base + "linear").c_str(), 0.09f);
+		objShader.SetUniformFloat((base + "quadratic").c_str(), 0.032f);
+	
+	}
+	
 
 	objShader.SetUniformVec3fv("directlight.direction", 1, glm::vec3(-0.2f, -1.0f, -0.3f));
 	objShader.SetUniformVec3fv("directlight.ambient", 1, glm::vec3(0.05f, 0.05f, 0.05f));
@@ -273,24 +296,19 @@ int main() {
 	objShader.SetUniformFloat("spotlight.linear", 0.09f);
 	objShader.SetUniformFloat("spotlight.quadratic", 0.032f);
 
-	//objShader.SetUniformVec3fv("material.ambient", 1, glm::vec3(1.0f, 0.5f, 0.31f));
-	//objShader.SetUniformVec3fv("material.diffuse", 1, glm::vec3(1.0f, 0.5f, 0.31f));
-	//objShader.SetUniformVec3fv("material.specular", 1, glm::vec3(0.5f, 0.5f, 0.5f));
 	objShader.SetUniformInt("material.diffuse", 0);
 	objShader.SetUniformInt("material.specular", 1); //отправляем текстуры в фрагментный шейдер
 	objShader.SetUniformFloat("material.shininess", 32.0f);
 
-	glm::mat4 model = glm::mat4(1.0f); //инициализация единичной матрицы
-	model = glm::translate(model, objPos);
-	objShader.SetUniformMatrix4fv("model", 1, model);
+	//glm::mat4 model = glm::mat4(1.0f); //инициализация единичной матрицы
+	//model = glm::translate(model, objPos);
+	//objShader.SetUniformMatrix4fv("model", 1, model);
 
 
 	Shader lightShader("shaders/cube_vs.glsl", "shaders/light_fs.glsl");
 	lightShader.UseShaderProgram();
-	glm::mat4 lightModel = glm::mat4(1.0f);
 	lightShader.SetUniformVec3fv("lightColor", 1, lightColor);
-	lightModel = glm::translate(lightModel, lightPos);
-	lightShader.SetUniformMatrix4fv("model", 1, lightModel);
+	
 	
 
 	stbi_set_flip_vertically_on_load(true);
@@ -447,9 +465,7 @@ int main() {
 			glm::mat4 model = glm::mat4(1.0f);
 			model = glm::translate(model, cubePositions[i]);
 			model = glm::rotate(model, (float)glfwGetTime() * glm::radians(angle), glm::vec3(0.5f, 1.0f, 0.0f));
-
 			objShader.SetUniformMatrix4fv("model", 1, model);
-
 			glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 		}
 
@@ -462,7 +478,15 @@ int main() {
 		lightShader.SetUniformMatrix4fv("projection", 1, projection);
 
 		glBindVertexArray(lightVAO); //связывание с VAO автоматически связываает EBO, всегда отвязываем EBO  после отвязки VAO
-		glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);// 36 - количесвто индексов
+		for (int i = 0; i < sizeof(lightModels) / sizeof(glm::mat4); ++i) {
+
+			glm::mat4 lightModel = glm::mat4(1.0f);
+			lightModel = glm::translate(lightModel, pointLightPositions[i]);
+			lightModel = glm::scale(lightModel, glm::vec3(0.4f));
+			lightShader.SetUniformMatrix4fv("model", 1, lightModel);
+			glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);// 36 - количесвто индексов
+		}
+		
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
