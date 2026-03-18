@@ -28,13 +28,7 @@ public:
 	std::vector<unsigned int> indices;
 	std::vector<Texture> textures;
 
-	
-
-
 private:
-	void setupMesh();
-
-	
 	unsigned int VBO, EBO, VAO;
 
 };

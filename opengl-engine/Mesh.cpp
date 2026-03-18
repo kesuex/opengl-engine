@@ -7,13 +7,6 @@ Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std:
 	this->indices = indices;
 	this->textures = textures;
 
-	setupMesh();
-
-}
-
-
-void Mesh::setupMesh() {
-
 	//Создание объекта буфера  VAO, VBO, EBO в видеопамяти
 	glGenVertexArrays(1, &VAO); //генерируем уникальный идентификатор конфигурации атрибутов VAO и создаем этот обьект
 	glGenBuffers(1, &VBO); //генерируем уникальный идентификатор буфера-обьекта вершин VBO и создаем этот обьект
@@ -44,6 +37,7 @@ void Mesh::setupMesh() {
 	glBindVertexArray(0);
 
 }
+
 
 void Mesh::Draw(Shader& shader) {
 
