@@ -358,13 +358,13 @@ int main() {
 	Texture diffuseTex;
 	diffuseMap = LoadTexture("textures/container2.png");
 	diffuseTex.id = diffuseMap;
-	diffuseTex.type = "texture_diffuse";
+	//diffuseTex.type = "texture_diffuse";
 	textures.push_back(diffuseTex);
 
 	Texture specularTex;
 	specularMap = LoadTexture("textures/container2_specular.png");
 	specularTex.id = specularMap;
-	specularTex.type = "texture_specular";
+	//specularTex.type = "texture_specular";
 	textures.push_back(specularTex);
 
 
