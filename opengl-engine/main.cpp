@@ -6,6 +6,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include "stb_image.h";
 
+#include "Mesh.h"
 #include "Shader.h"
 #include "Camera.h"
 
@@ -126,33 +127,78 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 	glViewport(0, 0, width, height); //задаем размер отображения для опенгл в нашем окне GLFW
 }
 
-
 void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 	camera.ProcessMouseMovement(xpos, ypos);
 }
+
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
 	camera.ProcessScrolling(xoffset, yoffset);
+}
+
+unsigned int LoadTexture(const char* path)
+{
+	unsigned int textureID;
+	unsigned char* textureData;
+	int textureWidth, textureHeight, texturenrChannels;
+	/*
+	Первый аргумент указывает цель текстуры; установка значения GL_TEXTURE_2D означает, что эта
+	операция сгенерирует текстуру на текущем связанном объекте текстуры с той же целью (поэтому любые
+	текстуры, связанные с целями GL_TEXTURE_1D или GL_TEXTURE_3D, не будут затронуты).
+	• Второй аргумент указывает уровень мипмапа, для которого мы хотим создать текстуру, если вы хотите
+	установить каждый уровень мипмапа вручную, но мы оставим его на базовом уровне, который равен 0.
+	• Третий аргумент указывает OpenGL, в каком формате мы хотим сохранить текстуру. Наше изображение
+	имеет только значения RGB, поэтому мы также сохраним текстуру со значениями RGB.
+	• Четвертый и пятый аргументы задают ширину и высоту результирующей текстуры. Мы сохранили их ранее
+	при загрузке изображения, поэтому будем использовать соответствующие переменные.
+	• Следующий аргумент всегда должен быть равен 0 (некоторые устаревшие вещи).
+	• 7-й и 8-й аргументы определяют формат и тип данных исходного изображения. Мы загрузили изображение со
+	значениями RGB и сохранили их в виде символов (байт), поэтому передадим соответствующие значения.
+	• Последний аргумент — это фактические данные изображения.
+	*/
+
+	textureData = stbi_load(path, &textureWidth, &textureHeight, &texturenrChannels, 0);
+	//Создаем текстуру
+	glGenTextures(1, &textureID); // функция принимает количество текстур и сохраняет в переменной texture
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, textureID);//привязка обьекта к типу
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	if (textureData) {
+		//GL_RGBA или GL_RGB  - параметр влияющий на формат пнг или джейпег 
+		GLenum GLformat;
+		if (texturenrChannels == 4) GLformat = GL_RGBA;
+		else GLformat = GL_RGB;
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, textureWidth, textureHeight, 0, GLformat, GL_UNSIGNED_BYTE, textureData); //привязка связанного обьекта текстуры к изображению 
+		glGenerateMipmap(GL_TEXTURE_2D);
+	}
+	else {
+		std::cout << " Cant load a texture";
+	}
+	stbi_image_free(textureData); //освобождаем память
+
+	return textureID;
 }
 
 
 unsigned int scrWIDTH = 800;
 unsigned int scrHEIGHT = 600;
 
-
 glm::mat4 projection;
 glm::mat4 view;
 
+unsigned int diffuseMap;
+unsigned int specularMap;
 
-unsigned int VBO;	
-unsigned int EBO; 						
-unsigned int VAO; 
-
-unsigned int lightVAO;
+glm::vec3 lightColor(1.0f, 1.0f, 1.0f);
 
 
 
 //данные о позиции и цвете вершин и координаты текстур
-float vertices[] = {
+float arr_vertices[] = {
 	// Front face (normal: 0, 0, 1)
 	-0.5f, -0.5f,  0.5f,  0.0f, 0.0f, 1.0f,  0.0f, 0.0f,  // 0
 	 0.5f, -0.5f,  0.5f,  0.0f, 0.0f, 1.0f,  1.0f, 0.0f,  // 1
@@ -191,7 +237,7 @@ float vertices[] = {
 };
 
 
-unsigned int indices[] = {
+std::vector<unsigned int> indices = {
   0, 1, 2,     2, 3, 0,
   4, 5, 6,     6, 7, 4,
   8, 9, 10,    10, 11, 8,
@@ -200,30 +246,16 @@ unsigned int indices[] = {
   20, 21, 22,  22, 23, 20
 };
 
-
-
-int texWidth, texHeight, texnrChannels;
-unsigned int diffuseMap;
-unsigned int specularMap;
-unsigned char* texData;
-
-
-
-glm::vec3 lightColor(1.0f, 1.0f, 1.0f);
-glm::vec3 objectColor(1.0f, 0.5f, 0.31f);
-glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
-glm::vec3 objPos(0.0f, 0.0f, -3.0f);
-
 glm::vec3 cubePositions[] = {
-	glm::vec3(0.0f,  0.0f,   0.0f),
-	glm::vec3(2.0f,  5.0f, -15.0f),
+	glm::vec3(0.0f,   0.0f,   0.0f),
+	glm::vec3(2.0f,   5.0f, -15.0f),
 	glm::vec3(-1.5f, -2.2f,  -2.5f),
 	glm::vec3(-3.8f, -2.0f, -12.3f),
-	glm::vec3(2.4f, -0.4f,  -3.5f),
+	glm::vec3(2.4f,  -0.4f,  -3.5f),
 	glm::vec3(-1.7f,  3.0f,  -7.5f),
-	glm::vec3(1.3f, -2.0f,  -2.5f),
-	glm::vec3(1.5f,  2.0f,  -2.5f),
-	glm::vec3(1.5f,  0.2f,  -1.5f),
+	glm::vec3(1.3f,  -2.0f,  -2.5f),
+	glm::vec3(1.5f,   2.0f,  -2.5f),
+	glm::vec3(1.5f,   0.2f,  -1.5f),
 	glm::vec3(-1.3f,  1.0f,  -1.5f)
 };
 
@@ -234,12 +266,6 @@ glm::vec3 pointLightPositions[] = {
 	glm::vec3(0.0f, 0.0f, -3.0f)
 };
 
-glm::mat4 lightModels[] = {
-   glm::mat4(1.0f),
-   glm::mat4(1.0f),
-   glm::mat4(1.0f),
-   glm::mat4(1.0f)
-};
 
 
 
@@ -296,135 +322,55 @@ int main() {
 	objShader.SetUniformFloat("spotlight.linear", 0.09f);
 	objShader.SetUniformFloat("spotlight.quadratic", 0.032f);
 
-	objShader.SetUniformInt("material.diffuse", 0);
-	objShader.SetUniformInt("material.specular", 1); //отправляем текстуры в фрагментный шейдер
+	objShader.SetUniformInt("material.texture_diffuse1", 0);
+	objShader.SetUniformInt("material.texture_specular1", 1); //отправляем текстуры в фрагментный шейдер
 	objShader.SetUniformFloat("material.shininess", 32.0f);
 
 	//glm::mat4 model = glm::mat4(1.0f); //инициализация единичной матрицы
 	//model = glm::translate(model, objPos);
 	//objShader.SetUniformMatrix4fv("model", 1, model);
 
-
 	Shader lightShader("shaders/cube_vs.glsl", "shaders/light_fs.glsl");
 	lightShader.UseShaderProgram();
 	lightShader.SetUniformVec3fv("lightColor", 1, lightColor);
-	
-	
+
+
+	std::vector<Vertex> vertices;
+
+	for(int i = 0; i <= (sizeof(arr_vertices)/sizeof(float)) - 8; ++i) {
+		Vertex vertex;
+		vertex.Position.x = arr_vertices[i];
+		vertex.Position.y = arr_vertices[i + 1];
+		vertex.Position.z = arr_vertices[i + 2];
+		vertex.Normal.x = arr_vertices[i + 3];
+		vertex.Normal.y = arr_vertices[i + 4];
+		vertex.Normal.z = arr_vertices[i + 5];
+		vertex.TexCoords.x = arr_vertices[i + 6];
+		vertex.TexCoords.y = arr_vertices[i + 7];
+
+		vertices.push_back(vertex);
+	}
 
 	stbi_set_flip_vertically_on_load(true);
-	/*
-	Первый аргумент указывает цель текстуры; установка значения GL_TEXTURE_2D означает, что эта
-	операция сгенерирует текстуру на текущем связанном объекте текстуры с той же целью (поэтому любые
-	текстуры, связанные с целями GL_TEXTURE_1D или GL_TEXTURE_3D, не будут затронуты).
-	• Второй аргумент указывает уровень мипмапа, для которого мы хотим создать текстуру, если вы хотите
-	установить каждый уровень мипмапа вручную, но мы оставим его на базовом уровне, который равен 0.
-	• Третий аргумент указывает OpenGL, в каком формате мы хотим сохранить текстуру. Наше изображение
-	имеет только значения RGB, поэтому мы также сохраним текстуру со значениями RGB.
-	• Четвертый и пятый аргументы задают ширину и высоту результирующей текстуры. Мы сохранили их ранее
-	при загрузке изображения, поэтому будем использовать соответствующие переменные.
-	• Следующий аргумент всегда должен быть равен 0 (некоторые устаревшие вещи).
-	• 7-й и 8-й аргументы определяют формат и тип данных исходного изображения. Мы загрузили изображение со
-	значениями RGB и сохранили их в виде символов (байт), поэтому передадим соответствующие значения.
-	• Последний аргумент — это фактические данные изображения.
-	*/
 
-	texData = stbi_load("textures/container2.png", &texWidth, &texHeight, &texnrChannels, 0);
-	//Создаем текстуру
-	glGenTextures(1, &diffuseMap); // функция принимает количество текстур и сохраняет в переменной texture
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, diffuseMap);//привязка обьекта к типу
+	std::vector<Texture> textures;
 
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	Texture diffuseTex;
+	diffuseMap = LoadTexture("textures/container2.png");
+	diffuseTex.id = diffuseMap;
+	diffuseTex.type = "texture_diffuse";
+	textures.push_back(diffuseTex);
 
-	if (texData) {
-		//GL_RGBA или GL_RGB  - параметр влияющий на формат пнг или джейпег 
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, texWidth, texHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, texData); //привязка связанного обьекта текстуры к изображению 
-		glGenerateMipmap(GL_TEXTURE_2D);
-	}
-	else {
-		std::cout << " Cant load a texture";
-	}
-	stbi_image_free(texData); //освобождаем память
+	Texture specularTex;
+	specularMap = LoadTexture("textures/container2_specular.png");
+	specularTex.id = specularMap;
+	specularTex.type = "texture_specular";
+	textures.push_back(specularTex);
 
-	//------------------------------------------------------------------
 
-	texData = stbi_load("textures/container2_specular.png", &texWidth, &texHeight, &texnrChannels, 0);
-	//Создаем текстуру
-	glGenTextures(1, &specularMap); // функция принимает количество текстур и сохраняет в переменной texture
-	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, specularMap);//привязка обьекта к типу
-
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-	if (texData) {
-		//GL_RGBA или GL_RGB  - параметр влияющий на формат пнг или джейпег
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, texWidth, texHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, texData); //привязка связанного обьекта текстуры к изображению 
-		glGenerateMipmap(GL_TEXTURE_2D);
-	}
-	else {
-		std::cout << " Cant load a texture";
-	}
-	stbi_image_free(texData); //освобождаем память
+	Mesh cube(vertices, indices, textures);
+	Mesh lighcube(vertices, indices, {});
 	
-	
-
-	//Создание объекта буфера  VAO, VBO, EBO в видеопамяти
-	glGenVertexArrays(1, &VAO); //генерируем уникальный идентификатор конфигурации атрибутов VAO и создаем этот обьект
-	glGenBuffers(1, &VBO); //генерируем уникальный идентификатор буфера-обьекта вершин VBO и создаем этот обьект
-	glGenBuffers(1, &EBO); // генерируем уникальный идентификатор буфера-обьекта индексов EBO и создаем этот обьект
-
-	//Активациия VAO и связывание буферов VBO, EBO
-	glBindVertexArray(VAO); // активируем обьект VAO для дальнейшей настройки
-	glBindBuffer(GL_ARRAY_BUFFER, VBO); // связываем созданныё буфферный обьект с типом буфера вершин - GL_ARRAY_BUFFER
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO); // связываем созданныё буфферный обьект с типом буфера индексов - GL_ELEMENT_ARRAY_BUFFER, запись в VAO
-
-	//Копирование данных в GPU память
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW); // копируем данные вершин из массива оперативной памяти в буфер видеопамяти видеокарты
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);// копируем данные индексов из массива оперативной памяти в буфер видеопамяти видеокарты
-	
-	//Записываем конфигурацию атрибута GL_ARRAY_BUFFER (к которому привязан текущий VBO) в активный VAO, после этого можно отвязать VBO - glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);// устанавливаем указатели атрибутов вершин
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));// устанавливаем указатели атрибутов цвета
-	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));// устанавливаем указатели атрибутов тексур
-	
-	//Включаем атрибуты
-	glEnableVertexAttribArray(0);// включаем атрибут вершины
-	glEnableVertexAttribArray(1);// включаем атрибут цвета
-	glEnableVertexAttribArray(2);// включаем атрибут текстур
-	
-	//Деактивация VAO куба
-	glBindVertexArray(0);
-
-	//Создание буфера отрисовки для светового обьекта используя той же формы куба
-	glGenVertexArrays(1, &lightVAO);
-	glBindVertexArray(lightVAO);
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);// устанавливаем указатели атрибутов вершин
-	glEnableVertexAttribArray(0);// включаем атрибут вершины
-	
-	//Деактивация VAO светового куба и отвязывание общего буфера VBO. EBO отвязывать не нужно. Если отвязывать то только после деактивации VAO, иначе VAO потеряет доступ к нему
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindVertexArray(0);
-
-	
-	/*
-	glm::mat4 trans = glm::mat4(1.0f); //инициализация единичной матрицы
-	trans = glm::translate(trans, glm::vec3(0.5f, -0.5f, 0.0f));
-	trans = glm::rotate(trans, glm::radians(90.0f), glm::vec3(0.0, 0.0, 1.0)); //2 шаг - создание матрицы преобразования где мы передаем единичную матрицу и вектор оси поворота по z и угла поворота в радианах
-	trans = glm::scale(trans, glm::vec3(0.5, 0.5, 0.5)); //1 шаг - создание матрицы преобразования где мы передаем единичную матрицу и вектор масштабирования
-	glm::mat4 savedTrans = trans;
-	shader.SetUniformMatrix4fv("transform", 1, trans); //отправляем матрицу в вершинны шейдер
-	 // перемещаем сцену в обратном направлении //view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
-	*/
-
-  				
 
 	glEnable(GL_DEPTH_TEST); // включаем буфер глубины чтобы передние и задние обьекты не перезаписывали друг друга
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); //настройка, не колбек. Говорит GLFW спрятать и заблокировать курсор.
@@ -451,13 +397,7 @@ int main() {
 		objShader.SetUniformFloat("spotlight.cutOff", glm::cos(glm::radians(12.5f)));
 		objShader.SetUniformFloat("spotlight.outerCutOff", glm::cos(glm::radians(17.5f)));
 		
-
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, diffuseMap);
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, specularMap);
-
-		glBindVertexArray(VAO);
+		
 		for (int i = 0; i < sizeof(cubePositions) / sizeof(glm::vec3); ++i) {
 
 			float angle = 20.0f * i;
@@ -466,25 +406,22 @@ int main() {
 			model = glm::translate(model, cubePositions[i]);
 			model = glm::rotate(model, (float)glfwGetTime() * glm::radians(angle), glm::vec3(0.5f, 1.0f, 0.0f));
 			objShader.SetUniformMatrix4fv("model", 1, model);
-			glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+			cube.Draw(objShader);
 		}
 
-		//glBindVertexArray(VAO); //связывание с VAO автоматически связываает EBO, всегда отвязываем EBO  после отвязки VAO
-		//glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);// 36 - количесвто индексов
-		//glBindVertexArray(0);
 
 		lightShader.UseShaderProgram();
 		lightShader.SetUniformMatrix4fv("view", 1, view);
 		lightShader.SetUniformMatrix4fv("projection", 1, projection);
 
-		glBindVertexArray(lightVAO); //связывание с VAO автоматически связываает EBO, всегда отвязываем EBO  после отвязки VAO
-		for (int i = 0; i < sizeof(lightModels) / sizeof(glm::mat4); ++i) {
+		
+		for (int i = 0; i < 4; ++i) {
 
 			glm::mat4 lightModel = glm::mat4(1.0f);
 			lightModel = glm::translate(lightModel, pointLightPositions[i]);
 			lightModel = glm::scale(lightModel, glm::vec3(0.4f));
 			lightShader.SetUniformMatrix4fv("model", 1, lightModel);
-			glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);// 36 - количесвто индексов
+			lighcube.Draw(lightShader);
 		}
 		
 
