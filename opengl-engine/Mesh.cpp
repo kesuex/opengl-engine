@@ -22,9 +22,9 @@ Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std:
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), &indices[0], GL_STATIC_DRAW);// копируем данные индексов из массива оперативной памяти в буфер видеопамяти видеокарты
 
 	//Записываем конфигурацию атрибута GL_ARRAY_BUFFER (к которому привязан текущий VBO) в активный VAO, после этого можно отвязать VBO - glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(Vertex), (void*)0);// устанавливаем указатели атрибутов вершин
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(Vertex), (void*)offsetof(Vertex, Normal));// устанавливаем указатели нормалей
-	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(Vertex), (void*)offsetof(Vertex, TexCoords));// устанавливаем указатели атрибутов тексур
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);// устанавливаем указатели атрибутов вершин
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, Normal));// устанавливаем указатели нормалей
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, TexCoords));// устанавливаем указатели атрибутов тексур
 
 	//Включаем атрибуты
 	glEnableVertexAttribArray(0);// включаем атрибут вершины
@@ -41,9 +41,22 @@ Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std:
 
 void Mesh::Draw(Shader& shader) {
 
-	for (unsigned int i = 0; i < textures.size(); i++)
-	{
+
+	int diffuseNr = 1, specularNr = 1;
+
+	for (unsigned int i = 0; i < textures.size(); ++i) {
+
+		std::string number;
+		std::string name = textures[i].type;
+
 		glActiveTexture(GL_TEXTURE0 + i); // сначала активируем текстурный блок
+
+		if (name == "texture_diffuse")
+			number = std::to_string(diffuseNr++); 
+		else if (name == "texture_specular")
+			number = std::to_string(specularNr++);
+
+		shader.SetUniformInt(("material." + name + number).c_str(), i);
 		glBindTexture(GL_TEXTURE_2D, textures[i].id);
 	}
 	

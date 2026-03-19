@@ -62,6 +62,8 @@ void Camera::ProcessMouseMovement(double xpos, double ypos) {
 	cameraFront = glm::normalize(direction);
 }
 
+
+
  void Camera::ProcessScrolling(double xoffset, double yoffset) {
 
 	zoom -= (float)yoffset;
@@ -71,9 +73,17 @@ void Camera::ProcessMouseMovement(double xpos, double ypos) {
 		zoom = 45.0f;
 }
 
- glm::mat4 Camera::GetViewMatrix()
- {
+
+
+ glm::mat4 Camera::GetProjectionMatrix(float width, float height) {
+	 return glm::perspective(glm::radians(zoom), width / height, Near, Far);
+ }
+
+ glm::mat4 Camera::GetViewMatrix() {
 	 return glm::lookAt(cameraPosition, cameraPosition + cameraFront, cameraUp);
  }
 
-
+ void Camera::ApplyUniformsView(Shader& shader, float width, float height) {
+	 shader.SetUniformMatrix4fv("view", 1, GetViewMatrix());
+	 shader.SetUniformMatrix4fv("projection", 1, GetProjectionMatrix(width, height));
+ }

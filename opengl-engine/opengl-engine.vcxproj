@@ -151,18 +151,26 @@
     <ClCompile Include="deps\src\glad.c" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Mesh.cpp" />
+    <ClCompile Include="Model.cpp" />
+    <ClCompile Include="Primitive.cpp" />
     <ClCompile Include="Shader.cpp" />
     <ClCompile Include="stb_image.cpp" />
+    <ClCompile Include="Transform.cpp" />
+    <ClCompile Include="Transformcpp.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="shaders\cube_fs.glsl" />
-    <None Include="shaders\cube_vs.glsl" />
+    <None Include="shaders\model_fs.glsl" />
+    <None Include="shaders\model_vs.glsl" />
     <None Include="shaders\light_fs.glsl" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera.h" />
     <ClInclude Include="Mesh.h" />
+    <ClInclude Include="Model.h" />
+    <ClInclude Include="Primitive.h" />
+    <ClInclude Include="PrimitiveData.h" />
     <ClInclude Include="Shader.h" />
+    <ClInclude Include="Transform.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

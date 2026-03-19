@@ -6,7 +6,9 @@
 #include <glm/gtc/type_ptr.hpp>
 #include "stb_image.h";
 
-#include "Mesh.h"
+#include "Model.h"
+#include "Primitive.h"
+#include "PrimitiveData.h"
 #include "Shader.h"
 #include "Camera.h"
 
@@ -135,54 +137,6 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
 	camera.ProcessScrolling(xoffset, yoffset);
 }
 
-unsigned int LoadTexture(const char* path)
-{
-	unsigned int textureID;
-	unsigned char* textureData;
-	int textureWidth, textureHeight, texturenrChannels;
-	/*
-	Первый аргумент указывает цель текстуры; установка значения GL_TEXTURE_2D означает, что эта
-	операция сгенерирует текстуру на текущем связанном объекте текстуры с той же целью (поэтому любые
-	текстуры, связанные с целями GL_TEXTURE_1D или GL_TEXTURE_3D, не будут затронуты).
-	• Второй аргумент указывает уровень мипмапа, для которого мы хотим создать текстуру, если вы хотите
-	установить каждый уровень мипмапа вручную, но мы оставим его на базовом уровне, который равен 0.
-	• Третий аргумент указывает OpenGL, в каком формате мы хотим сохранить текстуру. Наше изображение
-	имеет только значения RGB, поэтому мы также сохраним текстуру со значениями RGB.
-	• Четвертый и пятый аргументы задают ширину и высоту результирующей текстуры. Мы сохранили их ранее
-	при загрузке изображения, поэтому будем использовать соответствующие переменные.
-	• Следующий аргумент всегда должен быть равен 0 (некоторые устаревшие вещи).
-	• 7-й и 8-й аргументы определяют формат и тип данных исходного изображения. Мы загрузили изображение со
-	значениями RGB и сохранили их в виде символов (байт), поэтому передадим соответствующие значения.
-	• Последний аргумент — это фактические данные изображения.
-	*/
-
-	textureData = stbi_load(path, &textureWidth, &textureHeight, &texturenrChannels, 0);
-	//Создаем текстуру
-	glGenTextures(1, &textureID); // функция принимает количество текстур и сохраняет в переменной texture
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, textureID);//привязка обьекта к типу
-
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-	if (textureData) {
-		//GL_RGBA или GL_RGB  - параметр влияющий на формат пнг или джейпег 
-		GLenum GLformat;
-		if (texturenrChannels == 4) GLformat = GL_RGBA;
-		else GLformat = GL_RGB;
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, textureWidth, textureHeight, 0, GLformat, GL_UNSIGNED_BYTE, textureData); //привязка связанного обьекта текстуры к изображению 
-		glGenerateMipmap(GL_TEXTURE_2D);
-	}
-	else {
-		std::cout << " Cant load a texture";
-	}
-	stbi_image_free(textureData); //освобождаем память
-
-	return textureID;
-}
-
 
 unsigned int scrWIDTH = 800;
 unsigned int scrHEIGHT = 600;
@@ -195,56 +149,6 @@ unsigned int specularMap;
 
 glm::vec3 lightColor(1.0f, 1.0f, 1.0f);
 
-
-
-//данные о позиции и цвете вершин и координаты текстур
-float arr_vertices[] = {
-	// Front face (normal: 0, 0, 1)
-	-0.5f, -0.5f,  0.5f,  0.0f, 0.0f, 1.0f,  0.0f, 0.0f,  // 0
-	 0.5f, -0.5f,  0.5f,  0.0f, 0.0f, 1.0f,  1.0f, 0.0f,  // 1
-	 0.5f,  0.5f,  0.5f,  0.0f, 0.0f, 1.0f,  1.0f, 1.0f,  // 2
-	-0.5f,  0.5f,  0.5f,  0.0f, 0.0f, 1.0f,  0.0f, 1.0f,  // 3
-
-	// Back face (normal: 0, 0, -1)
-	-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,-1.0f,  1.0f, 0.0f,  // 4
-	 0.5f, -0.5f, -0.5f,  0.0f, 0.0f,-1.0f,  0.0f, 0.0f,  // 5
-	 0.5f,  0.5f, -0.5f,  0.0f, 0.0f,-1.0f,  0.0f, 1.0f,  // 6
-	-0.5f,  0.5f, -0.5f,  0.0f, 0.0f,-1.0f,  1.0f, 1.0f,  // 7
-
-	// Left face (normal: -1, 0, 0)
-	-0.5f, -0.5f, -0.5f, -1.0f, 0.0f, 0.0f,  0.0f, 0.0f,  // 8
-	-0.5f, -0.5f,  0.5f, -1.0f, 0.0f, 0.0f,  1.0f, 0.0f,  // 9
-	-0.5f,  0.5f,  0.5f, -1.0f, 0.0f, 0.0f,  1.0f, 1.0f,  // 10
-	-0.5f,  0.5f, -0.5f, -1.0f, 0.0f, 0.0f,  0.0f, 1.0f,  // 11
-
-	// Right face (normal: 1, 0, 0)
-	 0.5f, -0.5f,  0.5f,  1.0f, 0.0f, 0.0f,  0.0f, 0.0f,  // 12
-	 0.5f, -0.5f, -0.5f,  1.0f, 0.0f, 0.0f,  1.0f, 0.0f,  // 13
-	 0.5f,  0.5f, -0.5f,  1.0f, 0.0f, 0.0f,  1.0f, 1.0f,  // 14
-	 0.5f,  0.5f,  0.5f,  1.0f, 0.0f, 0.0f,  0.0f, 1.0f,  // 15
-
-	// Bottom face (normal: 0, -1, 0)
-	-0.5f, -0.5f, -0.5f,  0.0f,-1.0f, 0.0f,  0.0f, 1.0f,  // 16
-	 0.5f, -0.5f, -0.5f,  0.0f,-1.0f, 0.0f,  1.0f, 1.0f,  // 17
-	 0.5f, -0.5f,  0.5f,  0.0f,-1.0f, 0.0f,  1.0f, 0.0f,  // 18
-	-0.5f, -0.5f,  0.5f,  0.0f,-1.0f, 0.0f,  0.0f, 0.0f,  // 19
-
-	// Top face (normal: 0, 1, 0)
-	-0.5f,  0.5f,  0.5f,  0.0f, 1.0f, 0.0f,  0.0f, 0.0f,  // 20
-	 0.5f,  0.5f,  0.5f,  0.0f, 1.0f, 0.0f,  1.0f, 0.0f,  // 21
-	 0.5f,  0.5f, -0.5f,  0.0f, 1.0f, 0.0f,  1.0f, 1.0f,  // 22
-	-0.5f,  0.5f, -0.5f,  0.0f, 1.0f, 0.0f,  0.0f, 1.0f,  // 23
-};
-
-
-std::vector<unsigned int> indices = {
-  0, 1, 2,     2, 3, 0,
-  4, 5, 6,     6, 7, 4,
-  8, 9, 10,    10, 11, 8,
-  12, 13, 14,  14, 15, 12,
-  16, 17, 18,  18, 19, 16,
-  20, 21, 22,  22, 23, 20
-};
 
 glm::vec3 cubePositions[] = {
 	glm::vec3(0.0f,   0.0f,   0.0f),
@@ -293,7 +197,7 @@ int main() {
 	}
 
 	//Создаем шейдерную программу
-	Shader objShader("shaders/cube_vs.glsl", "shaders/cube_fs.glsl");
+	Shader objShader("shaders/model_vs.glsl", "shaders/model_fs.glsl");
 	objShader.UseShaderProgram();
 
 	for (int i = 0; i < sizeof(pointLightPositions) / sizeof(glm::vec3); ++i) {
@@ -322,56 +226,19 @@ int main() {
 	objShader.SetUniformFloat("spotlight.linear", 0.09f);
 	objShader.SetUniformFloat("spotlight.quadratic", 0.032f);
 
-	objShader.SetUniformInt("material.texture_diffuse1", 0);
-	objShader.SetUniformInt("material.texture_specular1", 1); //отправляем текстуры в фрагментный шейдер
 	objShader.SetUniformFloat("material.shininess", 32.0f);
 
-	//glm::mat4 model = glm::mat4(1.0f); //инициализация единичной матрицы
-	//model = glm::translate(model, objPos);
-	//objShader.SetUniformMatrix4fv("model", 1, model);
 
-	Shader lightShader("shaders/cube_vs.glsl", "shaders/light_fs.glsl");
+	Shader lightShader("shaders/model_vs.glsl", "shaders/light_fs.glsl");
 	lightShader.UseShaderProgram();
 	lightShader.SetUniformVec3fv("lightColor", 1, lightColor);
 
-
-	std::vector<Vertex> vertices;
-
-	for(int i = 0; i <= (sizeof(arr_vertices)/sizeof(float)) - 8; ++i) {
-		Vertex vertex;
-		vertex.Position.x = arr_vertices[i];
-		vertex.Position.y = arr_vertices[i + 1];
-		vertex.Position.z = arr_vertices[i + 2];
-		vertex.Normal.x = arr_vertices[i + 3];
-		vertex.Normal.y = arr_vertices[i + 4];
-		vertex.Normal.z = arr_vertices[i + 5];
-		vertex.TexCoords.x = arr_vertices[i + 6];
-		vertex.TexCoords.y = arr_vertices[i + 7];
-
-		vertices.push_back(vertex);
-	}
-
 	stbi_set_flip_vertically_on_load(true);
 
-	std::vector<Texture> textures;
+	Primitive lighcube(PrimitiveData::Cube::vertices, PrimitiveData::Cube::size, PrimitiveData::Cube::indices, {});
+	Model model("models/backpack/backpack.obj");
 
-	Texture diffuseTex;
-	diffuseMap = LoadTexture("textures/container2.png");
-	diffuseTex.id = diffuseMap;
-	//diffuseTex.type = "texture_diffuse";
-	textures.push_back(diffuseTex);
-
-	Texture specularTex;
-	specularMap = LoadTexture("textures/container2_specular.png");
-	specularTex.id = specularMap;
-	//specularTex.type = "texture_specular";
-	textures.push_back(specularTex);
-
-
-	Mesh cube(vertices, indices, textures);
-	Mesh lighcube(vertices, indices, {});
 	
-
 	glEnable(GL_DEPTH_TEST); // включаем буфер глубины чтобы передние и задние обьекты не перезаписывали друг друга
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); //настройка, не колбек. Говорит GLFW спрятать и заблокировать курсор.
 	glfwSetCursorPosCallback(window, mouse_callback); // регистрация функций-обработчиков. Вы говорите GLFW: "когда мышь
@@ -385,46 +252,31 @@ int main() {
 		
 		camera.processInput(window);
 
-		view = camera.GetViewMatrix();
-		projection = glm::perspective(glm::radians(camera.zoom), 800.0f / 600.0f, 0.1f, 100.0f);
-
 		objShader.UseShaderProgram();
-		objShader.SetUniformMatrix4fv("view", 1, view);
-		objShader.SetUniformMatrix4fv("projection", 1, projection);
+		camera.ApplyUniformsView(objShader, 800.0f, 600.0f);
+
 		objShader.SetUniformVec3fv("viewPos", 1, camera.cameraPosition);
 		objShader.SetUniformVec3fv("spotlight.position", 1, camera.cameraPosition);
 		objShader.SetUniformVec3fv("spotlight.direction", 1, camera.cameraFront);
 		objShader.SetUniformFloat("spotlight.cutOff", glm::cos(glm::radians(12.5f)));
 		objShader.SetUniformFloat("spotlight.outerCutOff", glm::cos(glm::radians(17.5f)));
-		
-		
-		for (int i = 0; i < sizeof(cubePositions) / sizeof(glm::vec3); ++i) {
-
-			float angle = 20.0f * i;
-
-			glm::mat4 model = glm::mat4(1.0f);
-			model = glm::translate(model, cubePositions[i]);
-			model = glm::rotate(model, (float)glfwGetTime() * glm::radians(angle), glm::vec3(0.5f, 1.0f, 0.0f));
-			objShader.SetUniformMatrix4fv("model", 1, model);
-			cube.Draw(objShader);
-		}
-
+	
+		model.transform.Position = cubePositions[0];
+		model.transform.ApplyUniformTransform(objShader, model.transform);
+		model.Draw(objShader);
 
 		lightShader.UseShaderProgram();
-		lightShader.SetUniformMatrix4fv("view", 1, view);
-		lightShader.SetUniformMatrix4fv("projection", 1, projection);
+		camera.ApplyUniformsView(lightShader, 800.0f, 600.0f);
 
-		
 		for (int i = 0; i < 4; ++i) {
 
-			glm::mat4 lightModel = glm::mat4(1.0f);
-			lightModel = glm::translate(lightModel, pointLightPositions[i]);
-			lightModel = glm::scale(lightModel, glm::vec3(0.4f));
-			lightShader.SetUniformMatrix4fv("model", 1, lightModel);
+			lighcube.transform.Position = pointLightPositions[i];
+			lighcube.transform.Scale = glm::vec3(0.4f);
+			lighcube.transform.ApplyUniformTransform(lightShader, lighcube.transform);
 			lighcube.Draw(lightShader);
+			
 		}
 		
-
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 		
