@@ -10,17 +10,15 @@
 class Primitive {
 
 public:
-	Primitive(float* vertices, int size, std::vector<unsigned int> indices, std::vector<Texture> textures);
+	Primitive(float* vertices, int size, std::vector<unsigned int> indices, const std::string& DMdirectory, const std::string& SMdirectory);
 	void Draw(Shader& shader, Material& material); 
 
 	Transform transform;
 private:
 
-	//std::vector<Texture> loadMaterialTextures(std::string typeName);
 
-	//std::string directory;
+	std::string directory;
 	Mesh mesh;
-	//std::vector<Texture> textures_loaded;
 };
 
-//unsigned int TextureFromFile(const char* path, const std::string& directory);
+unsigned int TextureFromFile(const std::string& directory);

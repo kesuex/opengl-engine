@@ -210,7 +210,8 @@ int main() {
 
 	stbi_set_flip_vertically_on_load(true);
 	
-	Primitive lighcube(PrimitiveData::Cube::vertices, PrimitiveData::Cube::size, PrimitiveData::Cube::indices, {});
+	Primitive lighCube(PrimitiveData::Cube::vertices, PrimitiveData::Cube::size, PrimitiveData::Cube::indices, "", "");
+	Primitive depthCube(PrimitiveData::Cube::vertices, PrimitiveData::Cube::size, PrimitiveData::Cube::indices, "textures/metal.png", "textures/metal.png");
 	Model model("models/backpack/backpack.obj");
 	Phong phong;
 	
@@ -222,7 +223,7 @@ int main() {
 
 	while (!glfwWindowShouldClose(window)) {	
 
-		glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // очищаем буферы глубины и цвета, иначе предыдущая информация от предыдщего кадра останется в буфере
 		
 		camera.processInput(window);
@@ -232,19 +233,23 @@ int main() {
 		camera.ApplyUniformsView(objShader, 800.0f, 600.0f);
 		spotlight.ApplyUniformRunTime(objShader, camera);
 		
-		model.transform.Position = cubePositions[0];
+		model.transform.Position = cubePositions[4];
 		model.transform.ApplyUniform(objShader, model.transform);
 		model.Draw(objShader, phong);
+
+		depthCube.transform.Position = cubePositions[7];
+		depthCube.transform.ApplyUniform(objShader, depthCube.transform);
+		depthCube.Draw(objShader, phong);
 
 		lightShader.UseShaderProgram();
 		camera.ApplyUniformsView(lightShader, 800.0f, 600.0f);
 
 		for (int i = 0; i < 4; ++i) {
 
-			lighcube.transform.Position = pointLightPositions[i];
-			lighcube.transform.Scale = glm::vec3(0.4f);
-			lighcube.transform.ApplyUniform(lightShader, lighcube.transform);
-			lighcube.Draw(lightShader, phong);
+			lighCube.transform.Position = pointLightPositions[i];
+			lighCube.transform.Scale = glm::vec3(0.4f);
+			lighCube.transform.ApplyUniform(lightShader, lighCube.transform);
+			lighCube.Draw(lightShader, phong);
 			
 		}
 		

@@ -55,11 +55,10 @@ void Mesh::Draw(Shader& shader, Material& material) {
 			number = std::to_string(diffuseNr++); 
 		else if (name == "texture_specular")
 			number = std::to_string(specularNr++);
-
+				
 		name += number;
 
 		material.ApplyUniformForTextures(shader, name, i);
-		//shader.SetUniformInt(("material." + name + number).c_str(), i);
 		glBindTexture(GL_TEXTURE_2D, textures[i].id);
 	}
 	material.ApplyUniformForParameters(shader);

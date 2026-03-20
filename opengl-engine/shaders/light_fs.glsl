@@ -145,7 +145,7 @@ void main(){
 	vec3 norm = normalize(Normal);
 	vec3 viewDir = normalize(viewPos - FragPos); //вектор от фрагмента к камере
 
-	vec3 result =  CalcDirectLight(directlight, norm, viewDir);
+	vec3 result;// =  CalcDirectLight(directlight, norm, viewDir);
 
 	for(int i = 0; i < NR_POINT_LIGHTS; ++i) {
 		
