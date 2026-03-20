@@ -39,17 +39,14 @@
     <ClCompile Include="Primitive.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Transformcpp.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Transform.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\model_vs.glsl" />
-    <None Include="shaders\model_fs.glsl" />
     <None Include="shaders\light_fs.glsl" />
+    <None Include="shaders\color_fs.glsl" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Shader.h">
@@ -71,6 +68,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Transform.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Light.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Material.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

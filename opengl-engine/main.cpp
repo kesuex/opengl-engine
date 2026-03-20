@@ -9,8 +9,10 @@
 #include "Model.h"
 #include "Primitive.h"
 #include "PrimitiveData.h"
+#include "Light.h"
 #include "Shader.h"
 #include "Camera.h"
+
 
 /*
 OpenGL ожидает, что все вершины, которые мы хотим сделать видимыми, будут
@@ -124,7 +126,6 @@ EBO — VAO запоминает саму привязку GL_ELEMENT_ARRAY_BUFF
 
 Camera camera;
 
-
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 	glViewport(0, 0, width, height); //задаем размер отображения для опенгл в нашем окне GLFW
 }
@@ -144,11 +145,7 @@ unsigned int scrHEIGHT = 600;
 glm::mat4 projection;
 glm::mat4 view;
 
-unsigned int diffuseMap;
-unsigned int specularMap;
-
 glm::vec3 lightColor(1.0f, 1.0f, 1.0f);
-
 
 glm::vec3 cubePositions[] = {
 	glm::vec3(0.0f,   0.0f,   0.0f),
@@ -169,7 +166,6 @@ glm::vec3 pointLightPositions[] = {
 	glm::vec3(-4.0f, 2.0f, -12.0f),
 	glm::vec3(0.0f, 0.0f, -3.0f)
 };
-
 
 
 
@@ -196,48 +192,27 @@ int main() {
 		return -1;
 	}
 
-	//Создаем шейдерную программу
-	Shader objShader("shaders/model_vs.glsl", "shaders/model_fs.glsl");
+	//Шейдер со светом
+	Shader objShader("shaders/model_vs.glsl", "shaders/light_fs.glsl");
 	objShader.UseShaderProgram();
+	PointLight pointlight;
+	int positionArrSize = sizeof(pointLightPositions) / sizeof(glm::vec3);
+	pointlight.ApplyUniformArrayInit(objShader,"pointlights", positionArrSize, pointLightPositions);
+	DirectLight directlight;
+	directlight.ApplyUniformInit(objShader);
+	SpotLight spotlight;
+	spotlight.ApplyUniformInit(objShader);
 
-	for (int i = 0; i < sizeof(pointLightPositions) / sizeof(glm::vec3); ++i) {
-
-		std::string base = "pointlights[" + std::to_string(i) + "].";
-		objShader.SetUniformVec3fv((base + "position").c_str(), 1, pointLightPositions[i]);
-		objShader.SetUniformVec3fv((base + "ambient").c_str(), 1, glm::vec3(0.2f, 0.2f, 0.2f));
-		objShader.SetUniformVec3fv((base + "diffuse").c_str(), 1, glm::vec3(0.5f, 0.5f, 0.5f));
-		objShader.SetUniformVec3fv((base + "specular").c_str(), 1, glm::vec3(1.0f, 1.0f, 1.0f));
-		objShader.SetUniformFloat((base + "constant").c_str(), 1.0f);
-		objShader.SetUniformFloat((base + "linear").c_str(), 0.09f);
-		objShader.SetUniformFloat((base + "quadratic").c_str(), 0.032f);
-	
-	}
-	
-
-	objShader.SetUniformVec3fv("directlight.direction", 1, glm::vec3(-0.2f, -1.0f, -0.3f));
-	objShader.SetUniformVec3fv("directlight.ambient", 1, glm::vec3(0.05f, 0.05f, 0.05f));
-	objShader.SetUniformVec3fv("directlight.diffuse", 1, glm::vec3(0.5f, 0.5f, 0.5f));
-	objShader.SetUniformVec3fv("directlight.specular", 1, glm::vec3(1.0f, 1.0f, 1.0f));
-
-	objShader.SetUniformVec3fv("spotlight.ambient", 1, glm::vec3(0.2f, 0.2f, 0.2f));
-	objShader.SetUniformVec3fv("spotlight.diffuse", 1, glm::vec3(0.5f, 0.5f, 0.5f));
-	objShader.SetUniformVec3fv("spotlight.specular", 1, glm::vec3(1.0f, 1.0f, 1.0f));
-	objShader.SetUniformFloat("spotlight.constant", 1.0f);
-	objShader.SetUniformFloat("spotlight.linear", 0.09f);
-	objShader.SetUniformFloat("spotlight.quadratic", 0.032f);
-
-	objShader.SetUniformFloat("material.shininess", 32.0f);
-
-
-	Shader lightShader("shaders/model_vs.glsl", "shaders/light_fs.glsl");
+	//Шейдер с простым цветом
+	Shader lightShader("shaders/model_vs.glsl", "shaders/color_fs.glsl");
 	lightShader.UseShaderProgram();
 	lightShader.SetUniformVec3fv("lightColor", 1, lightColor);
 
 	stbi_set_flip_vertically_on_load(true);
-
+	
 	Primitive lighcube(PrimitiveData::Cube::vertices, PrimitiveData::Cube::size, PrimitiveData::Cube::indices, {});
 	Model model("models/backpack/backpack.obj");
-
+	Phong phong;
 	
 	glEnable(GL_DEPTH_TEST); // включаем буфер глубины чтобы передние и задние обьекты не перезаписывали друг друга
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); //настройка, не колбек. Говорит GLFW спрятать и заблокировать курсор.
@@ -253,17 +228,13 @@ int main() {
 		camera.processInput(window);
 
 		objShader.UseShaderProgram();
-		camera.ApplyUniformsView(objShader, 800.0f, 600.0f);
 
-		objShader.SetUniformVec3fv("viewPos", 1, camera.cameraPosition);
-		objShader.SetUniformVec3fv("spotlight.position", 1, camera.cameraPosition);
-		objShader.SetUniformVec3fv("spotlight.direction", 1, camera.cameraFront);
-		objShader.SetUniformFloat("spotlight.cutOff", glm::cos(glm::radians(12.5f)));
-		objShader.SetUniformFloat("spotlight.outerCutOff", glm::cos(glm::radians(17.5f)));
-	
+		camera.ApplyUniformsView(objShader, 800.0f, 600.0f);
+		spotlight.ApplyUniformRunTime(objShader, camera);
+		
 		model.transform.Position = cubePositions[0];
-		model.transform.ApplyUniformTransform(objShader, model.transform);
-		model.Draw(objShader);
+		model.transform.ApplyUniform(objShader, model.transform);
+		model.Draw(objShader, phong);
 
 		lightShader.UseShaderProgram();
 		camera.ApplyUniformsView(lightShader, 800.0f, 600.0f);
@@ -272,8 +243,8 @@ int main() {
 
 			lighcube.transform.Position = pointLightPositions[i];
 			lighcube.transform.Scale = glm::vec3(0.4f);
-			lighcube.transform.ApplyUniformTransform(lightShader, lighcube.transform);
-			lighcube.Draw(lightShader);
+			lighcube.transform.ApplyUniform(lightShader, lighcube.transform);
+			lighcube.Draw(lightShader, phong);
 			
 		}
 		

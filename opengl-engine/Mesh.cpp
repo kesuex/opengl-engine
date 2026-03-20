@@ -39,7 +39,7 @@ Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std:
 }
 
 
-void Mesh::Draw(Shader& shader) {
+void Mesh::Draw(Shader& shader, Material& material) {
 
 
 	int diffuseNr = 1, specularNr = 1;
@@ -56,10 +56,14 @@ void Mesh::Draw(Shader& shader) {
 		else if (name == "texture_specular")
 			number = std::to_string(specularNr++);
 
-		shader.SetUniformInt(("material." + name + number).c_str(), i);
+		name += number;
+
+		material.ApplyUniformForTextures(shader, name, i);
+		//shader.SetUniformInt(("material." + name + number).c_str(), i);
 		glBindTexture(GL_TEXTURE_2D, textures[i].id);
 	}
-	
+	material.ApplyUniformForParameters(shader);
+
 	glBindVertexArray(VAO); //связывание с VAO автоматически связываает EBO, всегда отвязываем EBO  после отвязки VAO
 	glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
 	glBindVertexArray(0);

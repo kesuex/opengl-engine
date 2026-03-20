@@ -21,6 +21,6 @@ Primitive::Primitive(float* vertices, int size, std::vector<unsigned int> indice
 
 }
 
-void Primitive::Draw(Shader& shader) {
-	mesh.Draw(shader);
+void Primitive::Draw(Shader& shader,Material& material) {
+	mesh.Draw(shader, material);
 }

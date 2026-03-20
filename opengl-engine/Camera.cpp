@@ -86,4 +86,5 @@ void Camera::ProcessMouseMovement(double xpos, double ypos) {
  void Camera::ApplyUniformsView(Shader& shader, float width, float height) {
 	 shader.SetUniformMatrix4fv("view", 1, GetViewMatrix());
 	 shader.SetUniformMatrix4fv("projection", 1, GetProjectionMatrix(width, height));
+	 shader.SetUniformVec3fv("viewPos", 1, cameraPosition);
  }

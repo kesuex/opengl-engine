@@ -12,7 +12,7 @@ class Model {
 
 public:
 	Model(std::string path);
-	void Draw(Shader& shader); 
+	void Draw(Shader& shader, Material& material);
 
 	Transform transform;
 private:

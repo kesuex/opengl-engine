@@ -11,7 +11,7 @@ glm::mat4 Transform::GetMatrix() {
     return mat;
 }
 
-void Transform::ApplyUniformTransform(Shader& shader, Transform transform) {
+void Transform::ApplyUniform(Shader& shader, Transform transform) {
 
     shader.SetUniformMatrix4fv("model", 1, transform.GetMatrix());
 }

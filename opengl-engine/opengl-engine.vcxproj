@@ -156,15 +156,16 @@
     <ClCompile Include="Shader.cpp" />
     <ClCompile Include="stb_image.cpp" />
     <ClCompile Include="Transform.cpp" />
-    <ClCompile Include="Transformcpp.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="shaders\model_fs.glsl" />
-    <None Include="shaders\model_vs.glsl" />
     <None Include="shaders\light_fs.glsl" />
+    <None Include="shaders\model_vs.glsl" />
+    <None Include="shaders\color_fs.glsl" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera.h" />
+    <ClInclude Include="Light.h" />
+    <ClInclude Include="Material.h" />
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="Model.h" />
     <ClInclude Include="Primitive.h" />

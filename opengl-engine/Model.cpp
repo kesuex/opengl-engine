@@ -16,14 +16,13 @@ Model::Model(std::string path) {
 }
 
 
-void Model::Draw(Shader& shader) { 
+void Model::Draw(Shader& shader, Material& material) {
 
 	for (int i = 0; i < meshes.size(); ++i) {
-		meshes[i].Draw(shader);
+		meshes[i].Draw(shader, material);
 	}
 }
 	
-
 
 void Model::processNode(aiNode* node, const aiScene* scene) {
 
@@ -37,6 +36,7 @@ void Model::processNode(aiNode* node, const aiScene* scene) {
 		processNode(node->mChildren[i], scene);
 	}
 }
+
 
 Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene) {
 

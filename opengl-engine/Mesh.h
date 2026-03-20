@@ -3,7 +3,7 @@
 #include <glm/glm.hpp>
 
 #include "Shader.h"
-
+#include "Material.h"
 
 struct Vertex {
 	glm::vec3 Position;
@@ -22,7 +22,7 @@ class Mesh {
 public:
 	Mesh() = default;
 	Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::vector<Texture> textures);
-	void Draw(Shader& shader);
+	void Draw(Shader& shader, Material& material);
 	
 
 

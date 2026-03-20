@@ -15,7 +15,7 @@ public:
     glm::vec3 Scale = glm::vec3(1.0f);
 
     glm::mat4 GetMatrix();
-    void ApplyUniformTransform(Shader& shader, Transform transform);
+    void ApplyUniform(Shader& shader, Transform transform);
 
     
 };

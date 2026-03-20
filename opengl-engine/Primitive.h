@@ -4,13 +4,14 @@
 
 #include "Mesh.h"
 #include "Transform.h"
+#include "Material.h"
 
 
 class Primitive {
 
 public:
 	Primitive(float* vertices, int size, std::vector<unsigned int> indices, std::vector<Texture> textures);
-	void Draw(Shader& shader); 
+	void Draw(Shader& shader, Material& material); 
 
 	Transform transform;
 private:
