@@ -2,10 +2,9 @@
 #version 330 core
 out vec4 FragColor;
 
-//"uniform vec4 ourColor;\n" // юниформ переменная - является глобальной, позволяет задавать их значение на любом этапе шейдера, поэтому незачем определять их в вершинном шейдере//если обьявить униформ переменную и не использовать ее компилятор удалит ее без предупреждения из скомпилированной версии
-
-uniform sampler2D texture1;
-uniform sampler2D texture2;
+//"uniform vec4 ourColor;\n" // юниформ переменная - является глобальной, позволяет задавать их значение на любом этапе шейдера, 
+							//поэтому незачем определять их в вершинном шейдере
+							//если обьявить униформ переменную и не использовать ее компилятор удалит ее без предупреждения из скомпилированной версии
 
 
 
@@ -138,6 +137,18 @@ vec3 CalcDirectLight(DirectLight light, vec3 normal, vec3 viewDir) {
 
 }
 
+/*
+//линейное изменение буфера глубюины (по умолчанию оно нелинейно)
+float near = 0.1; 
+float far = 100.0;
+float LinearizeDepth(float depth) {
+    float z = depth * 2.0 - 1.0; // обратно к NDC
+	return (2.0 * near * far) / (far + near - z * (far - near));
+}
+float depth = LinearizeDepth(gl_FragCoord.z) / far; // / far для демонстрации 
+FragColor = vec4(vec3(depth), 1.0);//линейное
+*/
+//FragColor = vec4(vec3(gl_FragCoord.z), 1.0);//нелинейное
 
 
 void main(){
@@ -145,18 +156,16 @@ void main(){
 	vec3 norm = normalize(Normal);
 	vec3 viewDir = normalize(viewPos - FragPos); //вектор от фрагмента к камере
 
-	vec3 result;// =  CalcDirectLight(directlight, norm, viewDir);
-
+	vec3 result =  CalcDirectLight(directlight, norm, viewDir);
 	for(int i = 0; i < NR_POINT_LIGHTS; ++i) {
-		
 		result += CalcPointLight(pointlights[i], norm, FragPos, viewDir);
-	
 	}
-
 	result += CalcSpotLight(spotlight, norm, FragPos, viewDir);
-	FragColor = vec4(result, 1.0);
 
-	//FragColor = texture(ourTexture, TexCoord) * vec4(ourColor, 1.0); //смешиваем цвет текстуры с цветом вершин
-	//FragColor = mix(texture(texture1,TexCoord), texture(texture2,TexCoord), 0.2); //смешиваем две текстуры с помощью тексутрных единиц - 0,2 вернет 80% первого входного цвета и 20% второго входного цвета,
-
+	//FragColor = vec4(result, 1.0);
+	FragColor = texture(material.texture_diffuse1, TexCoord);
+	
 }
+
+//FragColor = texture(ourTexture, TexCoord) * vec4(ourColor, 1.0); //смешиваем цвет текстуры с цветом вершин
+//FragColor = mix(texture(texture1,TexCoord), texture(texture2,TexCoord), 0.2); //смешиваем две текстуры с помощью тексутрных единиц - 0,2 вернет 80% первого входного цвета и 20% второго входного цвета,

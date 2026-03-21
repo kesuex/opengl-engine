@@ -121,6 +121,10 @@ EBO — VAO запоминает саму привязку GL_ELEMENT_ARRAY_BUFF
 просмотра, вам необходимо также преобразовать все соответствующие векторы с помощью матрицы
 просмотра (не забудьте изменить и матрицу нормали).
 
+Важно помнить, что значения в буфере глубины не являются линейными в пространстве клипа (они линейны в пространстве просмотра
+до применения матрицы проекции). Значение 0,5 в буфере глубины не означает, что значение z пикселя находится
+на полпути в конусе обзора; значение z вершины на самом деле довольно близко к ближней плоскости!
+
 */
 
 
@@ -204,46 +208,76 @@ int main() {
 	spotlight.ApplyUniformInit(objShader);
 
 	//Шейдер с простым цветом
-	Shader lightShader("shaders/model_vs.glsl", "shaders/color_fs.glsl");
-	lightShader.UseShaderProgram();
-	lightShader.SetUniformVec3fv("lightColor", 1, lightColor);
+	Shader colorShader("shaders/model_vs.glsl", "shaders/color_fs.glsl");
+	colorShader.UseShaderProgram();
+	colorShader.SetUniformVec3fv("lightColor", 1, lightColor);
 
 	stbi_set_flip_vertically_on_load(true);
 	
 	Primitive lighCube(PrimitiveData::Cube::vertices, PrimitiveData::Cube::size, PrimitiveData::Cube::indices, "", "");
-	Primitive depthCube(PrimitiveData::Cube::vertices, PrimitiveData::Cube::size, PrimitiveData::Cube::indices, "textures/metal.png", "textures/metal.png");
+	Primitive depthCube(PrimitiveData::Cube::vertices, PrimitiveData::Cube::size, PrimitiveData::Cube::indices, "textures/marble.jpg", "textures/marble.jpg");
+	Primitive depthPlane(PrimitiveData::Plane::vertices, PrimitiveData::Plane::size, PrimitiveData::Plane::indices, "textures/metal.png", "textures/metal.png" );
 	Model model("models/backpack/backpack.obj");
 	Phong phong;
 	
-	glEnable(GL_DEPTH_TEST); // включаем буфер глубины чтобы передние и задние обьекты не перезаписывали друг друга
+	
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); //настройка, не колбек. Говорит GLFW спрятать и заблокировать курсор.
 	glfwSetCursorPosCallback(window, mouse_callback); // регистрация функций-обработчиков. Вы говорите GLFW: "когда мышь
 	glfwSetScrollCallback(window, scroll_callback);	  // двигается — вызови вот эту функцию". Регистрируется тоже один раз.
 	
+	glEnable(GL_DEPTH_TEST); // включаем буфер глубины чтобы передние и задние обьекты не перезаписывали друг друга
+	glEnable(GL_STENCIL_TEST); // включаем буфер трафарета чтобы отбрасывать фрагменты до передачи в буфер глубины
+	//glDepthFunc(GL_ALWAYS);//стандартная отрисовка
+	glDepthFunc(GL_LESS);//корректная отрисвока
 
 	while (!glfwWindowShouldClose(window)) {	
-
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // очищаем буферы глубины и цвета, иначе предыдущая информация от предыдщего кадра останется в буфере
-		
 		camera.processInput(window);
 
-		objShader.UseShaderProgram();
+		glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT); // очищаем буферы глубины и цвета, иначе предыдущая информация от предыдщего кадра останется в буфере
+		
+		glStencilMask(0x00);
+
+		objShader.UseShaderProgram();
 		camera.ApplyUniformsView(objShader, 800.0f, 600.0f);
 		spotlight.ApplyUniformRunTime(objShader, camera);
-		
-		model.transform.Position = cubePositions[4];
-		model.transform.ApplyUniform(objShader, model.transform);
-		model.Draw(objShader, phong);
 
-		depthCube.transform.Position = cubePositions[7];
-		depthCube.transform.ApplyUniform(objShader, depthCube.transform);
+		depthPlane.transform.ApplyUniform(objShader, glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(1.0f));
+		depthPlane.Draw(objShader, phong);
+
+		glStencilFunc(GL_ALWAYS, 1, 0xFF);
+		glStencilMask(0xFF);
+
+		depthCube.transform.ApplyUniform(objShader, glm::vec3(-1.0f, 0.0f, -1.0f), glm::vec3(0.0f), glm::vec3(1.0f));
+		depthCube.Draw(objShader, phong);
+		depthCube.transform.ApplyUniform(objShader, glm::vec3(2.0f, 0.0f, 0.0f), glm::vec3(0.0f), glm::vec3(1.0f));
 		depthCube.Draw(objShader, phong);
 
-		lightShader.UseShaderProgram();
-		camera.ApplyUniformsView(lightShader, 800.0f, 600.0f);
+		glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
+		glStencilMask(0x00); 
+		glDisable(GL_DEPTH_TEST);
 
+		colorShader.UseShaderProgram();
+		camera.ApplyUniformsView(colorShader, 800.0f, 600.0f);
+
+		depthCube.transform.ApplyUniform(colorShader, glm::vec3(-1.0f, 0.0f, -1.0f), glm::vec3(0.0f), glm::vec3(1.07f));
+		depthCube.Draw(colorShader, phong);
+		depthCube.transform.ApplyUniform(colorShader, glm::vec3(2.0f, 0.0f, 0.0f), glm::vec3(0.0f), glm::vec3(1.07f));
+		depthCube.Draw(colorShader, phong);
+
+		glStencilMask(0xFF);
+		glStencilFunc(GL_ALWAYS, 1, 0xFF);
+		glEnable(GL_DEPTH_TEST);
+
+
+		//model.transform.Position = cubePositions[4];
+		//model.transform.ApplyUniform(objShader, model.transform);
+		//model.Draw(objShader, phong);
+
+
+		/*
 		for (int i = 0; i < 4; ++i) {
 
 			lighCube.transform.Position = pointLightPositions[i];
@@ -252,7 +286,8 @@ int main() {
 			lighCube.Draw(lightShader, phong);
 			
 		}
-		
+		*/
+
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 		

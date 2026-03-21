@@ -7,7 +7,7 @@ void Camera::processInput(GLFWwindow* window) {
 	deltaTime = currentFrame - lastFrame;
 	lastFrame = currentFrame;
 
-	float cameraSpeed = 2.5f * deltaTime;
+	float cameraSpeed = 3.0f * deltaTime;
 
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
