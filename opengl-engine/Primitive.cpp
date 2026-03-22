@@ -46,20 +46,21 @@ void Primitive::Draw(Shader& shader, Material& material) {
 	}
 		
 	if (outlined) {
-		//рисуем фрагменты и для каждого записываем 1 в stencil буфер
-		glStencilFunc(GL_ALWAYS, 1, 0xFF); //настройка стенсил буфера(допуск к отрисовке пискелей, всегда проходить тест, значение которое записывается в буфер, маска для сравнения перед тестом)
-		glStencilMask(0xFF); //все биты открыты = разрешаем запись в stencil буфер
+		glStencilFunc(GL_ALWAYS, 1, 0xFF); 
+		glStencilMask(0xFF); //все биты открыты = разрешаем запись в stencil буфер // каждый бит записывается как есть
 		mesh.Draw(shader, material);
 	}
 }
 
 void Primitive::DrawOutline(Shader& shader, Material& material) {
-	
-	glStencilFunc(GL_NOTEQUAL, 1, 0xFF); //настройка стенсил буфера(допуск отрисовки с учетом занятых пикселей)
-	glStencilMask(0x00); //закрываем запись в буфер
+	//проходим тест, результат которого отправится в глобальную фукнцию glStencilOp
+	//если ref не равен (GL_NOTEQUAL в данном случае) значению в стенсил буфере то пропускать, если равен отбрасывать (и все это прмиеняется к маске 0xFF которую можно кастомизировать)
+	glStencilFunc(GL_NOTEQUAL, 1, 0xFF); 
+	glStencilMask(0x00);  // каждый бит становится равным 0 (отключение записи)
 	glDisable(GL_DEPTH_TEST); // чтобы рисовались поверх других обьектов
 
 	mesh.Draw(shader, material);
+
 	/*
 	glStencilMask(0xFF); нужна в конце
 	Для того чтобы glClear в начале следующего кадра мог очистить stencil буфер.
@@ -68,7 +69,6 @@ void Primitive::DrawOutline(Shader& shader, Material& material) {
 	*/
 	glEnable(GL_DEPTH_TEST);
 	glStencilMask(0xFF);
-	
 	
 }
 
