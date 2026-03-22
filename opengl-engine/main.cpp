@@ -250,39 +250,25 @@ int main() {
 		camera.ApplyUniformsView(objShader, 800.0f, 600.0f);
 		spotlight.ApplyUniformRunTime(objShader, camera);
 
-		glStencilMask(0x00); //все биты закрыты, запрет записи в стенсил буфер
 		depthPlane.transform.ApplyUniform(objShader, glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(1.0f));
 		depthPlane.Draw(objShader, phong);
 
-		//рисуем фрагменты и для каждого записывай 1 в stencil буфер
-		glStencilFunc(GL_ALWAYS, 1, 0xFF); //настройка стенсил буфера(допуск к отрисовке пискелей, всегда проходить тест, значение которое записывается в буфер, маска для сравнения перед тестом)
-		glStencilMask(0xFF); //все биты открыты = разрешаем запись в stencil буфер
-
+		depthCube.outlined = true;
 		depthCube.transform.ApplyUniform(objShader, glm::vec3(-1.0f, 0.0f, -1.0f), glm::vec3(0.0f), glm::vec3(1.0f));
 		depthCube.Draw(objShader, phong);
 		depthCube.transform.ApplyUniform(objShader, glm::vec3(2.0f, 0.0f, 0.0f), glm::vec3(0.0f), glm::vec3(1.0f));
 		depthCube.Draw(objShader, phong);
-
-		glStencilFunc(GL_NOTEQUAL, 1, 0xFF); //настройка стенсил буфера(допуск отрисовки с учетом занятых пикселей)
-		glStencilMask(0x00); //закрываем запись в буфер
-		glDisable(GL_DEPTH_TEST); // чтобы рисовались поверх других обьектов
+		depthCube.outlined = false;
 
 		colorShader.UseShaderProgram();
 		camera.ApplyUniformsView(colorShader, 800.0f, 600.0f);
 
 		depthCube.transform.ApplyUniform(colorShader, glm::vec3(-1.0f, 0.0f, -1.0f), glm::vec3(0.0f), glm::vec3(1.07f));
-		depthCube.Draw(colorShader, phong);
+		depthCube.DrawOutline(colorShader, phong);
 		depthCube.transform.ApplyUniform(colorShader, glm::vec3(2.0f, 0.0f, 0.0f), glm::vec3(0.0f), glm::vec3(1.07f));
-		depthCube.Draw(colorShader, phong);
-
-		/*
-		glStencilMask(0xFF); нужна в конце 
-		Для того чтобы glClear в начале следующего кадра мог очистить stencil буфер.
-		glClear(GL_STENCIL_BUFFER_BIT) записывает 0 во все ячейки — но если glStencilMask(0x00) закрыта, 
-		запись заблокирована и glClear не сработает.Буфер останется с данными от предыдущего кадра.	
-		*/
-		glEnable(GL_DEPTH_TEST);
-		glStencilMask(0xFF);
+		depthCube.DrawOutline(colorShader, phong);
+		
+		
 
 		//model.transform.Position = cubePositions[4];
 		//model.transform.ApplyUniform(objShader, model.transform);

@@ -39,8 +39,39 @@ Primitive::Primitive(float* vertices, int size, std::vector<unsigned int> indice
 
 
 void Primitive::Draw(Shader& shader, Material& material) {
-	mesh.Draw(shader, material);
+
+	if (!outlined) {
+		glStencilMask(0x00);//все биты закрыты, запрет записи в стенсил буфер
+		mesh.Draw(shader, material);
+	}
+		
+	if (outlined) {
+		//рисуем фрагменты и для каждого записываем 1 в stencil буфер
+		glStencilFunc(GL_ALWAYS, 1, 0xFF); //настройка стенсил буфера(допуск к отрисовке пискелей, всегда проходить тест, значение которое записывается в буфер, маска для сравнения перед тестом)
+		glStencilMask(0xFF); //все биты открыты = разрешаем запись в stencil буфер
+		mesh.Draw(shader, material);
+	}
 }
+
+void Primitive::DrawOutline(Shader& shader, Material& material) {
+	
+	glStencilFunc(GL_NOTEQUAL, 1, 0xFF); //настройка стенсил буфера(допуск отрисовки с учетом занятых пикселей)
+	glStencilMask(0x00); //закрываем запись в буфер
+	glDisable(GL_DEPTH_TEST); // чтобы рисовались поверх других обьектов
+
+	mesh.Draw(shader, material);
+	/*
+	glStencilMask(0xFF); нужна в конце
+	Для того чтобы glClear в начале следующего кадра мог очистить stencil буфер.
+	glClear(GL_STENCIL_BUFFER_BIT) записывает 0 во все ячейки — но если glStencilMask(0x00) закрыта,
+	запись заблокирована и glClear не сработает.Буфер останется с данными от предыдущего кадра.
+	*/
+	glEnable(GL_DEPTH_TEST);
+	glStencilMask(0xFF);
+	
+	
+}
+
 
 
 unsigned int TextureFromFile(const std::string& directory) {

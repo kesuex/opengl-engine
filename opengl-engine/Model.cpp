@@ -18,11 +18,36 @@ Model::Model(std::string path) {
 
 void Model::Draw(Shader& shader, Material& material) {
 
+	if (!outlined) {
+		glStencilMask(0x00);
+		for (int i = 0; i < meshes.size(); ++i) {
+			meshes[i].Draw(shader, material);
+		}
+	}
+
+	if (outlined) {
+		glStencilFunc(GL_ALWAYS, 1, 0xFF); 
+		glStencilMask(0xFF); 
+		for (int i = 0; i < meshes.size(); ++i) {
+			meshes[i].Draw(shader, material);
+		}
+	}
+}
+
+void Model::DrawOutline(Shader& shader, Material& material) {
+
+	glStencilFunc(GL_NOTEQUAL, 1, 0xFF); 
+	glStencilMask(0x00); 
+	glDisable(GL_DEPTH_TEST); 
+
 	for (int i = 0; i < meshes.size(); ++i) {
 		meshes[i].Draw(shader, material);
 	}
+
+	glEnable(GL_DEPTH_TEST);
+	glStencilMask(0xFF);
+
 }
-	
 
 void Model::processNode(aiNode* node, const aiScene* scene) {
 

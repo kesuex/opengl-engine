@@ -11,9 +11,12 @@ class Primitive {
 
 public:
 	Primitive(float* vertices, int size, std::vector<unsigned int> indices, const std::string& DMdirectory, const std::string& SMdirectory);
-	void Draw(Shader& shader, Material& material); 
+	void Draw(Shader& shader,  Material& material);
+	void DrawOutline(Shader& shader,  Material& material);
+
 
 	Transform transform;
+	bool outlined = false; //включение или выключение записи в стенсил буфер
 private:
 
 

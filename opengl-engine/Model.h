@@ -13,7 +13,9 @@ class Model {
 public:
 	Model(std::string path);
 	void Draw(Shader& shader, Material& material);
+	void DrawOutline(Shader& shader, Material& material);
 
+	bool outlined = false; //включение или выключение записи в стенсил буфер
 	Transform transform;
 private:
 	
